@@ -1,2 +1,4 @@
-# Mills Museum Project
+# Mills Art Museum Project: Generating AAT Keywords for the Museum Collection
+This project will use Artificial Intelligence to generate keywords matching the Mills College Art Museum's current collection of pieces. Pairing keywords to images has, traditionally, been a very tedious and thankless task that no-one looks forward to doing; the situation at the Art Museum is no different, and their initial attempts at putting together keywords for the images quickly stalled. Thus, considering the modern advancements in Artificial Intelligence and Machine Learning, it is natural to attempt to largely relieve the workers of this Sisyphean task.
 
+The project uses Python as its primary language thanks to the rich collection of AI and ML-focused libraries, as well as familiarity among the developers.
