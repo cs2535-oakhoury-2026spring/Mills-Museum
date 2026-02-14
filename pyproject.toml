@@ -1,0 +1,11 @@
+[project]
+name = "mills-museum"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "datasets>=4.5.0",
+    "pandas>=3.0.0",
+    "pandas-stubs~=3.0.0",
+]
