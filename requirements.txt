@@ -1,12 +1,12 @@
-pip install open_clip_torch
-pip install torch
-pip install transformers 
-pip install pillow
-pip install chromadb
-pip install pandas
-pip install openpyxl
-pip install datasets
-pip install tqdm
-pip install sentence-transformers
-pip install qwen
-pip install qwen-vl-utils
+open_clip_torch
+torch
+transformers 
+pillow
+chromadb
+pandas
+openpyxl
+datasets
+tqdm
+sentence-transformers
+qwen
+qwen-vl-utils
