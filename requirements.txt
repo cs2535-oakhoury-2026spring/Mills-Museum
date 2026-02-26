@@ -1,5 +1,6 @@
 open_clip_torch
-torch
+# flashattention doesn't like torch 2.10 as of writing
+torch == 2.9.1
 transformers 
 pillow
 chromadb
