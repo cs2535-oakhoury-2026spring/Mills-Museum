@@ -41,5 +41,8 @@ ATT keyword dataset.
 
 ### Specs
 
-[!IMPORTANT]
-Hi team, finish the pipeline specifications as well as a brief general design choice.
+Our pipeline is implemented in the Python programming language, due to the familiarity of the team with the language as well as the prominence of machine learning libraries and wrappers for the language. Powerful libraries such as pytorch make Python a premiere choice for machine learning work across the industry.
+
+For our machine learning models, we chose Qwen3VL Embedder and Reranker models. These models have the benefit of being open-weight, which allows us to easily make any necessary adjustments easily, as well as being (close to) State of The Art in this space. Qwen as a whole is a rising force in the AI model space, with their propensity to release a wide range of variants and sizes for their models (as well as the previously mentioned open weights) making them particularly popular among local hosting and finetuning circles. The Embedder model generates embeddings based on the image, associating them with specific concepts; in our case, we fit the embedding model onto a filtered version of the AAT terms so that the embeddings it would generate are AAT terms. The Reranker model takes the embeddings generated and re-ranks them, which allows us to further refine the output and increase the quality of results.
+
+The pipeline is primarily designed around using Google Colab, as their rather generous educational benefits package has given us access to far more powerful hardware than we would otherwise have access too, and in general the platform allows for workflows to be very easily shared and used. We also believe that Colab's pay-as-you-go style of pricing will be very attractive to small museums, as it means that they only pay for what they use and they don't need to worry about the various costs of maintaining infrastructure or hardware themselves.
