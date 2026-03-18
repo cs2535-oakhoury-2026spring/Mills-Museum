@@ -4,23 +4,9 @@
   padding: 0;
 }
 
-body {
-  background-color: #0f0f0f;
-  color: #e0e0e0;
-  font-family: sans-serif;
-  min-height: 100vh;
-  margin: 0;
-}
-
-#root {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-}
-
 .app {
+  --panel-max: 640px;
+
   max-width: 900px;
   width: 100%;
   margin: 0 auto;
@@ -30,103 +16,136 @@ body {
   align-items: center;
 }
 
-.app h1 {
-  font-size: 1.8rem;
-  font-weight: 700;
-  margin-bottom: 6px;
-  color: #ffffff;
-  text-align: center;
-}
-
 .subtitle {
   font-size: 0.95rem;
-  color: #aaaaaa;
+  color: var(--text);
+  opacity: 0.7;
   margin-bottom: 28px;
   text-align: center;
+  max-width: 56ch;
+}
+
+/* Shared surfaces */
+.image-viewer,
+.upload-area,
+.nav-bar,
+.review-columns,
+.action-row {
+  width: 100%;
+  max-width: var(--panel-max);
 }
 
 /* Image viewer */
 .image-viewer {
   width: 500px;
   height: 500px;
-  background-color: #1c1c1c;
-  border: 1px solid #333;
-  border-radius: 8px;
+  max-width: 100%;
+  /* Avoid overly tall layout on very small viewports. */
+  max-height: 70vh;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  margin-bottom: 8px;
+  box-shadow: var(--shadow);
+  margin-bottom: 12px;
 }
 
 .image-viewer img {
-  max-width: 100%;
-  max-height: 100%;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
+  display: block; /* avoids inline-image baseline gaps */
 }
 
 .image-viewer .placeholder {
-  color: #555;
-  font-size: 0.9rem;
+  color: var(--text);
+  opacity: 0.7;
+  font-size: 0.95rem;
 }
 
 /* Nav bar */
 .nav-bar {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 500px;
-  margin-bottom: 24px;
+  /* Let the middle counter take remaining space so the text is truly centered. */
+  gap: 0;
+  margin-bottom: 20px;
 }
 
 .nav-bar button {
-  width: 36px;
-  height: 32px;
-  background-color: #2a2a2a;
-  color: #e0e0e0;
-  border: 1px solid #444;
-  border-radius: 6px;
+  width: 38px;
+  height: 34px;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
   cursor: pointer;
   font-size: 1rem;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, filter 0.15s ease, transform 0.06s ease;
 }
 
 .nav-bar button:hover {
-  background-color: #3a3a3a;
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+  color: var(--text-h);
 }
 
 .nav-bar button:disabled {
-  opacity: 0.3;
+  opacity: 0.45;
   cursor: default;
 }
 
+.nav-bar button:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .nav-bar .counter {
-  font-size: 0.85rem;
-  color: #aaaaaa;
-  min-width: 70px;
+  font-size: 0.9rem;
+  color: var(--text);
+  opacity: 0.7;
+  /* Stretch to fill the space between buttons, then center text within it. */
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
+  line-height: 1;
 }
 
 /* Upload area */
 .upload-area {
-  width: 500px;
-  border: 2px dashed #444;
-  border-radius: 8px;
-  padding: 32px;
+  border: 1.5px dashed var(--border);
+  border-radius: 14px;
+  padding: 28px 20px;
   text-align: center;
   cursor: pointer;
-  color: #888;
+  color: var(--text);
+  opacity: 0.95;
   margin-bottom: 12px;
-  transition: border-color 0.2s;
+  transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.06s ease;
 }
 
 .upload-area:hover {
-  border-color: #666;
-  color: #aaa;
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
+}
+
+.upload-area:active {
+  transform: translateY(1px);
+}
+
+.upload-area:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
 }
 
 .upload-area input {
@@ -136,182 +155,226 @@ body {
 .upload-icon {
   font-size: 2rem;
   margin-bottom: 8px;
+  line-height: 1;
 }
 
 .upload-area p {
-  font-size: 0.9rem;
+  font-size: 0.95rem;
+  color: var(--text);
+  opacity: 0.75;
 }
 
 /* Buttons */
-.btn-primary {
-  background-color: #e05c00;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  padding: 10px 20px;
-  font-size: 0.95rem;
+.btn-primary,
+.btn-secondary {
+  width: 100%;
+  max-width: var(--panel-max);
+  padding: 12px 18px;
+  font-size: 1rem;
+  border-radius: 12px;
   cursor: pointer;
-  width: 500px;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, filter 0.15s ease, transform 0.06s ease;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--bg);
+  border: 1px solid transparent;
+  box-shadow: var(--shadow);
   margin-bottom: 10px;
 }
 
 .btn-primary:hover {
-  background-color: #c75200;
+  filter: brightness(0.97);
 }
 
 .btn-primary:disabled {
-  opacity: 0.4;
+  opacity: 0.5;
   cursor: default;
+  box-shadow: none;
+  filter: none;
+}
+
+.btn-primary:focus-visible {
+  outline: 3px solid var(--accent-border);
+  outline-offset: 3px;
 }
 
 .btn-secondary {
-  background-color: #2a2a2a;
-  color: #e0e0e0;
-  border: 1px solid #444;
-  border-radius: 6px;
-  padding: 10px 20px;
-  font-size: 0.95rem;
-  cursor: pointer;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  margin-bottom: 10px;
 }
 
 .btn-secondary:hover {
-  background-color: #3a3a3a;
+  background: var(--code-bg);
+  border-color: var(--accent-border);
+  color: var(--text-h);
+}
+
+.btn-secondary:focus-visible {
+  outline: 3px solid var(--accent-border);
+  outline-offset: 3px;
 }
 
 /* Status */
 .status {
-  font-size: 0.85rem;
-  color: #aaaaaa;
+  font-size: 0.9rem;
+  color: var(--text);
+  opacity: 0.7;
   margin-top: 6px;
-  height: 18px;
+  min-height: 1.2em;
 }
 
 /* Review layout */
 .review-columns {
   display: flex;
-  gap: 24px;
-  width: 500px;
+  gap: 18px;
   margin: 24px 0 12px;
-  padding: 16px 18px 10px;
-  background-color: #111111;
-  border-radius: 12px;
-  border: 1px solid #262626;
+  padding: 16px 16px 12px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--bg);
+  box-shadow: var(--shadow);
 }
 
-.keywords-col {
+.keywords-col,
+.export-col {
   flex: 1;
+  min-width: 0;
 }
 
-.keywords-col h3 {
-  font-size: 1.1rem;
-  font-weight: 700;
+.keywords-col h3,
+.export-col h3 {
+  font-size: 1.05rem;
+  font-weight: 650;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  color: #ffffff;
-  margin-bottom: 8px;
-  padding-bottom: 4px;
-  border-bottom: 1px solid #333;
+  color: var(--text-h);
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
 }
 
+/* Hint pill */
 .keywords-col p {
-  font-size: 0.8rem;
-  color: #ffb86c;
-  background-color: #2a1a00;
+  font-size: 0.85rem;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
   border-radius: 999px;
-  padding: 4px 10px;
+  padding: 6px 12px;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   margin-bottom: 12px;
+  opacity: 0.95;
 }
 
 .keywords-col p::before {
-  content: "Hint";
+  content: 'Hint';
   text-transform: uppercase;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   letter-spacing: 0.06em;
-  opacity: 0.8;
+  opacity: 0.85;
 }
 
 .keyword-list {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-height: 400px;
+  max-height: 40vh;
   overflow-y: auto;
 }
 
 .keyword-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.85rem;
-  color: #cccccc;
+  gap: 10px;
+  font-size: 0.9rem;
+  color: var(--text);
   cursor: pointer;
-  padding: 4px 6px;
-  border-radius: 6px;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  user-select: none;
 }
 
 .keyword-item:hover {
-  background-color: #242424;
-  color: #ffffff;
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+  color: var(--text-h);
 }
 
-.keyword-item input[type="checkbox"] {
-  accent-color: #e05c00;
-  width: 14px;
-  height: 14px;
+.keyword-item input[type='checkbox'] {
+  accent-color: var(--accent);
+  width: 16px;
+  height: 16px;
   flex-shrink: 0;
   cursor: pointer;
 }
 
-.export-col {
-  flex: 1;
-}
-
-.export-col h3 {
-  font-size: 1.1rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  color: #ffffff;
-  margin-bottom: 10px;
-  padding-bottom: 4px;
-  border-bottom: 1px solid #333;
+.keyword-item input[type='checkbox']:focus-visible {
+  outline: 3px solid var(--accent-border);
+  outline-offset: 3px;
+  border-radius: 4px;
 }
 
 .export-col textarea {
   width: 100%;
-  height: 400px;
-  background-color: #1c1c1c;
-  color: #cccccc;
-  border: 1px solid #333;
-  border-radius: 6px;
-  padding: 10px;
-  font-size: 0.82rem;
+  height: 46vh;
+  max-height: 520px;
+  min-height: 260px;
+  background: var(--code-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 0.9rem;
   resize: none;
-  font-family: sans-serif;
+  font-family: inherit;
   line-height: 1.5;
+}
+
+.export-col textarea:focus-visible {
+  outline: 3px solid var(--accent-border);
+  outline-offset: 3px;
 }
 
 /* Bottom action row */
 .action-row {
   display: flex;
   gap: 12px;
+  width: 100%;
   margin-top: 4px;
-  padding: 12px 18px 16px;
-  background-color: #111111;
-  border-radius: 12px;
-  border: 1px solid #262626;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--bg);
+  box-shadow: var(--shadow);
 }
 
-.action-row .btn-primary {
+.action-row .btn-primary,
+.action-row .btn-secondary {
   width: auto;
   flex: 1;
   margin-bottom: 0;
 }
 
-.action-row .btn-secondary {
-  flex: 1;
+@media (max-width: 768px) {
+  .review-columns {
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .export-col textarea {
+    height: 36vh;
+    min-height: 220px;
+  }
+
+  .action-row {
+    flex-direction: column;
+  }
 }

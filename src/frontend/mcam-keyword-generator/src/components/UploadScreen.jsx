@@ -22,8 +22,9 @@ export default function UploadScreen({ onProcessed }) {
     ? URL.createObjectURL(files[previewIndex])
     : null
 
-  // Replace this URL each time you restart the Colab
-  const API_URL = 'https://stilliform-celine-plaintively.ngrok-free.dev'
+  // By default, use the local mock backend.
+  // To call the Colab/ngrok backend, set `VITE_API_URL` to the ngrok base URL.
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
   const handleProcess = async () => {
     if (files.length === 0) return
@@ -79,7 +80,16 @@ export default function UploadScreen({ onProcessed }) {
 
       <div
         className="upload-area"
-        onClick={() => inputRef.current.click()}
+        role="button"
+        tabIndex={0}
+        aria-label="Upload artwork images"
+        onClick={() => inputRef.current?.click?.()}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            inputRef.current?.click?.()
+          }
+        }}
         onDrop={handleDrop}
         onDragOver={e => e.preventDefault()}
       >
