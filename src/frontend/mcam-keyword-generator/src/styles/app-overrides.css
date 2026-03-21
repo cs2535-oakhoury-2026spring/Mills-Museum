@@ -1,0 +1,49 @@
+/**
+ * Loaded after theme.css: MCAM shell uses Tailwind utilities; these fix
+ * undefined --text-* vars from the Figma export and tune base typography.
+ */
+@layer base {
+  .mcam-app h1 {
+    font-size: 1.875rem;
+    line-height: 1.25;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  .mcam-app h2 {
+    font-size: 1rem;
+    line-height: 1.5;
+    font-weight: 500;
+  }
+
+  .mcam-app h3 {
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    font-weight: 500;
+  }
+
+  .mcam-app h4 {
+    font-size: 0.875rem;
+    line-height: 1.5;
+    font-weight: 500;
+  }
+
+  .mcam-app .mcam-subtitle {
+    font-size: 0.875rem;
+    line-height: 1.5;
+    font-weight: 400;
+  }
+
+  .mcam-app button {
+    font-size: 0.875rem;
+    line-height: 1.25;
+    font-weight: 500;
+  }
+
+  .mcam-app input[type='text'],
+  .mcam-app input[type='file'] {
+    font-size: 0.75rem;
+    line-height: 1.5;
+    font-weight: 400;
+  }
+}

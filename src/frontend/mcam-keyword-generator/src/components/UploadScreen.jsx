@@ -1,85 +1,118 @@
-import { useState, useRef } from 'react'
-import NavBar from './NavBar'
+import { useState, useRef, useEffect } from 'react'
 
-export default function UploadScreen({ onProcessed }) {
+export default function UploadScreen({
+  onRequestProcess,
+  errorMessage,
+  onDismissError,
+}) {
   const [files, setFiles] = useState([])
   const [previewIndex, setPreviewIndex] = useState(0)
-  const [status, setStatus] = useState('')
-  const inputRef = useRef()
+  const [previewUrl, setPreviewUrl] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
+  const inputRef = useRef(null)
+
+  useEffect(() => {
+    if (files.length === 0) {
+      setPreviewUrl(null)
+      return undefined
+    }
+    const url = URL.createObjectURL(files[previewIndex])
+    setPreviewUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [files, previewIndex])
 
   const handleFiles = (incoming) => {
-    const arr = Array.from(incoming)
+    const arr = Array.from(incoming || [])
     setFiles(arr)
     setPreviewIndex(0)
+    onDismissError?.()
   }
 
   const handleDrop = (e) => {
     e.preventDefault()
+    setIsDragging(false)
     handleFiles(e.dataTransfer.files)
   }
 
-  const previewUrl = files.length > 0
-    ? URL.createObjectURL(files[previewIndex])
-    : null
-
-  // By default, use the local mock backend.
-  // To call the Colab/ngrok backend, set `VITE_API_URL` to the ngrok base URL.
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-
   const handleProcess = async () => {
-    if (files.length === 0) return
-    setStatus('Processing...')
-
+    if (files.length === 0 || busy) return
+    setBusy(true)
     try {
-      const results = []
-
-      for (const file of files) {
-        const formData = new FormData()
-        formData.append('file', file)
-
-        const res = await fetch(`${API_URL}/predict`, {
-          method: 'POST',
-          headers: { 'ngrok-skip-browser-warning': 'true' },
-          body: formData,
-        })
-
-        if (!res.ok) throw new Error(`Server error: ${res.status}`)
-
-        const data = await res.json()
-
-        results.push({
-          file,
-          previewUrl: URL.createObjectURL(file),
-          keywords: data.keywords.map(kw => ({ ...kw, selected: true })),
-        })
-      }
-
-      setStatus('')
-      onProcessed(results)
-    } catch (err) {
-      console.error(err)
-      setStatus('Error connecting to backend. Is the Colab running?')
+      await onRequestProcess(files)
+    } finally {
+      setBusy(false)
     }
   }
 
+  const showNav = files.length > 1
+
   return (
-    <div>
-      <div className="image-viewer">
-        {previewUrl
-          ? <img src={previewUrl} alt="preview" />
-          : <span className="placeholder">No image selected</span>
-        }
+    <div className="mx-auto flex w-full max-w-md flex-col items-center gap-5">
+      {errorMessage ? (
+        <div
+          className="w-full rounded-lg border border-amber-700/50 bg-amber-950/40 px-3 py-2.5 text-sm text-amber-100"
+          role="alert"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <span>{errorMessage}</span>
+            <button
+              type="button"
+              onClick={onDismissError}
+              className="shrink-0 text-amber-300 underline hover:text-amber-200"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="w-full overflow-hidden rounded-xl bg-slate-800 ring-1 ring-slate-700">
+        <div className="flex h-44 items-center justify-center bg-slate-900/70 px-2">
+          {previewUrl ? (
+            <img
+              src={previewUrl}
+              alt={`Preview ${previewIndex + 1} of ${files.length}`}
+              className="max-h-full max-w-full object-contain"
+            />
+          ) : (
+            <span className="text-xs text-slate-500">No image selected</span>
+          )}
+        </div>
+
+        {showNav ? (
+          <div className="flex items-center justify-center gap-3 border-t border-slate-700 py-2.5">
+            <button
+              type="button"
+              onClick={() => setPreviewIndex((i) => Math.max(0, i - 1))}
+              disabled={previewIndex <= 0}
+              className="rounded-md bg-slate-700 px-2.5 py-1 text-xs text-slate-200 disabled:cursor-not-allowed disabled:opacity-40"
+              aria-label="Previous file preview"
+            >
+              ←
+            </button>
+            <span className="min-w-[5rem] text-center text-xs text-slate-400">
+              {previewIndex + 1} / {files.length}
+            </span>
+            <button
+              type="button"
+              onClick={() =>
+                setPreviewIndex((i) => Math.min(files.length - 1, i + 1))
+              }
+              disabled={previewIndex >= files.length - 1}
+              className="rounded-md bg-slate-700 px-2.5 py-1 text-xs text-slate-200 disabled:cursor-not-allowed disabled:opacity-40"
+              aria-label="Next file preview"
+            >
+              →
+            </button>
+          </div>
+        ) : null}
       </div>
 
-      <NavBar
-        current={previewIndex}
-        total={files.length}
-        onPrev={() => setPreviewIndex(i => Math.max(i - 1, 0))}
-        onNext={() => setPreviewIndex(i => Math.min(i + 1, files.length - 1))}
-      />
-
       <div
-        className="upload-area"
+        className={`w-full rounded-xl bg-slate-800 px-4 py-4 ring-1 transition-all ${
+          isDragging ? 'ring-2 ring-amber-500' : 'ring-slate-700'
+        }`}
         role="button"
         tabIndex={0}
         aria-label="Upload artwork images"
@@ -91,28 +124,48 @@ export default function UploadScreen({ onProcessed }) {
           }
         }}
         onDrop={handleDrop}
-        onDragOver={e => e.preventDefault()}
+        onDragOver={(e) => {
+          e.preventDefault()
+          setIsDragging(true)
+        }}
+        onDragLeave={(e) => {
+          e.preventDefault()
+          setIsDragging(false)
+        }}
+        onDragEnter={(e) => {
+          e.preventDefault()
+          setIsDragging(true)
+        }}
       >
         <input
           ref={inputRef}
           type="file"
           multiple
           accept="image/*"
-          onChange={e => handleFiles(e.target.files)}
+          className="hidden"
+          onChange={(e) => handleFiles(e.target.files)}
         />
-        <div className="upload-icon">↑</div>
-        <p>Drop images here — or click to upload</p>
+        <div
+          className={`flex flex-col items-center justify-center rounded-lg border border-dashed py-5 transition-colors ${
+            isDragging ? 'border-amber-500/80 bg-amber-950/20' : 'border-slate-600 bg-slate-700/30'
+          }`}
+        >
+          <p className="text-center text-sm text-slate-300">Drop images here</p>
+          <p className="mt-1 text-center text-xs text-slate-500">or click to choose · multiple files OK</p>
+          <span className="mt-3 inline-flex rounded-md bg-amber-500 px-5 py-2 text-xs font-medium text-slate-900">
+            Choose files
+          </span>
+        </div>
       </div>
 
       <button
-        className="btn-primary"
+        type="button"
         onClick={handleProcess}
-        disabled={files.length === 0}
+        disabled={files.length === 0 || busy}
+        className="w-full max-w-xs rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        Generate Keywords
+        {busy ? 'Working…' : 'Generate keywords'}
       </button>
-
-      <div className="status">{status}</div>
     </div>
   )
 }
