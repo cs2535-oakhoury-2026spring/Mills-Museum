@@ -1,8 +1,37 @@
+function stripKeywordDefinition(rawText) {
+  if (rawText == null) return ''
+  const text = String(rawText).trim()
+  if (!text) return ''
+
+  // Your backend may sometimes return labels in the form:
+  //   "<term> : <definition>"
+  //   "<term> :"
+  // We only want to display "<term>".
+  const delimiter = ' : '
+  if (text.includes(delimiter)) {
+    return text.split(delimiter, 1)[0].trim()
+  }
+
+  if (text.endsWith(' :')) {
+    return text.slice(0, -2).trim()
+  }
+
+  if (text.endsWith(':')) {
+    return text.slice(0, -1).trim()
+  }
+
+  return text
+}
+
 export function mapApiKeyword(kw) {
-  const raw = kw.score
-  const score = typeof raw === 'number' ? raw : parseFloat(raw)
+  const rawScore = kw.score
+  const score =
+    typeof rawScore === 'number' ? rawScore : parseFloat(rawScore)
+
+  const rawText = kw.label ?? kw.text ?? ''
+
   return {
-    text: kw.label ?? kw.text ?? '',
+    text: stripKeywordDefinition(rawText),
     confidence: Number.isFinite(score) ? Math.round(score * 10) / 10 : 0,
     selected: true,
   }
