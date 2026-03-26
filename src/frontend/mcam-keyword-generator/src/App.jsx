@@ -142,13 +142,15 @@ export default function App() {
           </p>
         </div>
 
-        <div className="flex w-full flex-1 justify-center">
+        <div className="flex w-full min-w-0 flex-1 justify-center">
           {phase === 'upload' ? (
-            <UploadScreen
-              onRequestProcess={handleRequestProcess}
-              errorMessage={batchError}
-              onDismissError={() => setBatchError('')}
-            />
+            <div className="mx-auto w-full max-w-md min-w-0 shrink-0">
+              <UploadScreen
+                onRequestProcess={handleRequestProcess}
+                errorMessage={batchError}
+                onDismissError={() => setBatchError('')}
+              />
+            </div>
           ) : null}
 
           {phase === 'processing' ? (
@@ -161,7 +163,7 @@ export default function App() {
           ) : null}
 
           {phase === 'result' ? (
-            <div className="w-full">
+            <div className="w-full min-w-0">
               <ReviewView
                 results={results}
                 resultIndex={resultIndex}

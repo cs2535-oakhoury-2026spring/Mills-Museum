@@ -48,35 +48,37 @@ export default function UploadScreen({
   const showNav = files.length > 1
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Error Banner */}
+    <div className="flex w-full min-w-0 flex-col gap-6 overflow-x-hidden">
       {errorMessage ? (
-        <div className="flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/10 px-5 py-4 text-sm text-red-300 shadow-lg shadow-red-500/5">
+        <div className="flex min-w-0 items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300 shadow-lg shadow-red-500/5">
           <svg className="h-5 w-5 shrink-0 text-red-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
           </svg>
-          <span className="flex-1 font-medium">{errorMessage}</span>
+          <span className="min-w-0 flex-1 font-medium">{errorMessage}</span>
           <button
+            type="button"
             onClick={onDismissError}
-            className="rounded-lg px-3 py-1.5 text-xs font-medium text-red-300 transition-colors hover:bg-red-500/20"
+            className="shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium text-red-300 transition-colors hover:bg-red-500/20"
           >
             Dismiss
           </button>
         </div>
       ) : null}
 
-      <div className="mx-auto flex w-full max-w-md flex-col gap-6">
-        {/* Preview — fixed height so image aspect does not resize the box */}
-        <div className="w-full overflow-hidden rounded-xl bg-slate-800 ring-1 ring-slate-700">
-          <div className="flex h-44 items-center justify-center bg-slate-900/70 px-2">
+      <div className="flex min-w-0 flex-col gap-5">
+        {/* Fixed-size preview; image is positioned so intrinsic width cannot expand layout */}
+        <div className="w-full min-w-0 overflow-hidden rounded-xl bg-slate-800 ring-1 ring-slate-700">
+          <div className="relative h-80 min-h-80 w-full min-w-0 bg-slate-900/70">
             {previewUrl ? (
               <img
                 src={previewUrl}
                 alt={`Preview ${previewIndex + 1} of ${files.length}`}
-                className="max-h-full max-w-full object-contain"
+                className="absolute inset-0 box-border h-full w-full object-contain object-center"
               />
             ) : (
-              <span className="text-xs text-slate-500">No image selected</span>
+              <span className="absolute inset-0 flex items-center justify-center text-xs text-slate-500">
+                No image selected
+              </span>
             )}
           </div>
 
@@ -109,11 +111,11 @@ export default function UploadScreen({
           ) : null}
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex w-full min-w-0 flex-col gap-3">
           <div
             tabIndex={0}
             role="button"
-            className={`group flex flex-1 cursor-pointer flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed p-8 transition-all duration-200 ${
+            className={`group flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed px-3 py-3 transition-all duration-200 ${
               isDragging
                 ? 'border-amber-500 bg-amber-500/10 shadow-lg shadow-amber-500/10'
                 : 'border-slate-700 bg-slate-900/30 hover:border-amber-500/50 hover:bg-slate-900/50'
@@ -147,37 +149,29 @@ export default function UploadScreen({
               className="hidden"
               onChange={(e) => handleFiles(e.target.files)}
             />
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-800 text-slate-400 ring-1 ring-slate-700 transition-all group-hover:bg-amber-500/10 group-hover:text-amber-400 group-hover:ring-amber-500/30">
-              <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-slate-800 text-slate-400 ring-1 ring-slate-700 transition-all group-hover:bg-amber-500/10 group-hover:text-amber-400 group-hover:ring-amber-500/30">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
               </svg>
             </div>
             <div className="text-center">
-              <p className="text-base font-semibold text-slate-200">
+              <p className="text-xs font-semibold text-slate-200">
                 Drop images here
               </p>
-              <p className="mt-1 text-sm text-slate-500">
-                or click to choose · multiple files supported
+              <p className="mt-0.5 text-[11px] text-slate-500">
+                or click · multiple OK
               </p>
             </div>
-            <span className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-slate-300 ring-1 ring-slate-700 transition-all group-hover:bg-amber-500/20 group-hover:text-amber-300 group-hover:ring-amber-500/30">
+            <span className="rounded-md bg-slate-800 px-2.5 py-1 text-[11px] font-medium text-slate-300 ring-1 ring-slate-700 transition-all group-hover:bg-amber-500/20 group-hover:text-amber-300 group-hover:ring-amber-500/30">
               Choose files
             </span>
           </div>
 
-          {files.length > 0 && (
-            <div className="rounded-xl border border-slate-800/60 bg-slate-900/30 px-4 py-3">
-              <p className="text-sm text-slate-400">
-                <span className="font-semibold text-white">{files.length}</span>{' '}
-                {files.length === 1 ? 'image' : 'images'} selected
-              </p>
-            </div>
-          )}
-
           <button
+            type="button"
             onClick={handleProcess}
             disabled={files.length === 0 || busy}
-            className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:from-amber-400 hover:to-orange-400 hover:shadow-amber-500/40 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
+            className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:from-amber-400 hover:to-orange-400 hover:shadow-amber-500/40 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
           >
             {busy ? (
               <span className="flex items-center justify-center gap-2">
