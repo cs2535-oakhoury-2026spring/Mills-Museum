@@ -5,12 +5,29 @@ export default function UploadScreen({
   errorMessage,
   onDismissError,
 }) {
+  const DEFAULT_KEYWORD_COUNT = 20
+  const MIN_KEYWORD_COUNT = 1
+  const MAX_KEYWORD_COUNT = 50
+
   const [files, setFiles] = useState([])
   const [previewIndex, setPreviewIndex] = useState(0)
   const [previewUrl, setPreviewUrl] = useState(null)
   const [busy, setBusy] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
+  const [keywordCount, setKeywordCount] = useState(DEFAULT_KEYWORD_COUNT)
+  const [keywordCountText, setKeywordCountText] = useState(
+    String(DEFAULT_KEYWORD_COUNT),
+  )
   const inputRef = useRef(null)
+
+  const clampKeywordCount = (n) => {
+    const parsed = Number(n)
+    if (!Number.isFinite(parsed)) return DEFAULT_KEYWORD_COUNT
+    return Math.max(
+      MIN_KEYWORD_COUNT,
+      Math.min(MAX_KEYWORD_COUNT, Math.round(parsed)),
+    )
+  }
 
   useEffect(() => {
     if (files.length === 0) {
@@ -39,7 +56,7 @@ export default function UploadScreen({
     if (files.length === 0 || busy) return
     setBusy(true)
     try {
-      await onRequestProcess(files)
+      await onRequestProcess(files, keywordCount)
     } finally {
       setBusy(false)
     }
@@ -112,6 +129,61 @@ export default function UploadScreen({
         </div>
 
         <div className="flex w-full min-w-0 flex-col gap-3">
+        <div className="flex min-w-0 flex-col gap-2">
+          <label className="text-xs font-medium text-slate-200" htmlFor="kw-count">
+            # Keywords to generate
+          </label>
+          <div className="flex items-center gap-3">
+            <input
+              id="kw-count"
+              type="range"
+              min={MIN_KEYWORD_COUNT}
+              max={MAX_KEYWORD_COUNT}
+              step={1}
+              value={keywordCount}
+              onChange={(e) => {
+                const next = clampKeywordCount(e.target.value)
+                setKeywordCount(next)
+                setKeywordCountText(String(next))
+              }}
+              className="h-2 w-full cursor-pointer accent-amber-500"
+              aria-label="Keyword count"
+            />
+            <input
+              type="number"
+              min={MIN_KEYWORD_COUNT}
+              max={MAX_KEYWORD_COUNT}
+              step={1}
+              value={keywordCountText}
+              onChange={(e) => {
+                const nextText = e.target.value
+                setKeywordCountText(nextText)
+
+                // Allow the field to be temporarily empty while editing.
+                if (nextText === '') return
+
+                const parsed = parseInt(nextText, 10)
+                if (Number.isNaN(parsed)) return
+
+                const next = clampKeywordCount(parsed)
+                setKeywordCount(next)
+                // Normalize out-of-range values immediately.
+                if (String(next) !== nextText) {
+                  setKeywordCountText(String(next))
+                }
+              }}
+              onBlur={() => {
+                if (keywordCountText === '') {
+                  setKeywordCountText(String(keywordCount))
+                }
+              }}
+              className="w-20 rounded-md bg-slate-900/80 py-2 px-2 text-sm text-slate-100 ring-1 ring-slate-600 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/70"
+              aria-label="Keyword count (number)"
+            />
+          </div>
+          <p className="text-[11px] text-slate-500">Limits: 1–50 keywords</p>
+        </div>
+
           <div
             tabIndex={0}
             role="button"

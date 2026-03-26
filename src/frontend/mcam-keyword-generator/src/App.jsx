@@ -21,13 +21,18 @@ export default function App() {
     })
   }, [])
 
-  const handleRequestProcess = async (files) => {
+  const handleRequestProcess = async (files, termCount = 20) => {
     if (!files.length) return
     setBatchError('')
     setPhase('processing')
     setProcessingProgress(0)
     setProcessingPreviewUrl('')
     const acc = []
+    const clampedTermCount = (() => {
+      const n = Number(termCount)
+      if (!Number.isFinite(n)) return 20
+      return Math.max(1, Math.min(50, Math.round(n)))
+    })()
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i]
@@ -38,6 +43,7 @@ export default function App() {
       try {
         const formData = new FormData()
         formData.append('file', file)
+        formData.append('term_count', String(clampedTermCount))
         const res = await fetch(`${API_URL}/predict`, {
           method: 'POST',
           headers: { 'ngrok-skip-browser-warning': 'true' },
