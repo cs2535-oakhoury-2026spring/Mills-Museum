@@ -59,48 +59,49 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
   }
 
   return (
-    <div className="w-full">
-      <div className="grid gap-5 xl:grid-cols-12 xl:gap-6">
-        <div className="xl:col-span-4">
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="rounded-xl bg-slate-800 p-4 ring-1 ring-slate-700 xl:sticky xl:top-4"
-          >
-            <div className="group relative overflow-hidden rounded-lg bg-slate-700">
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-5">
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="rounded-xl bg-slate-800 p-4 ring-1 ring-slate-700"
+      >
+        <div className="mx-auto w-full max-w-md">
+          <div className="group relative flex h-44 w-full items-center justify-center overflow-hidden rounded-lg bg-slate-900/70 px-2">
+            {imageSrc ? (
               <img
                 src={imageSrc}
                 alt=""
-                className="aspect-square w-full object-cover"
+                className="max-h-full max-w-full object-contain"
               />
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(true)}
-                className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100"
-                aria-label="Enlarge image"
-              >
-                <ZoomIn className="h-7 w-7 text-white" />
-              </button>
-            </div>
-            <p
-              className="mt-3 break-all text-center text-xs text-slate-400"
-              title={fileName}
+            ) : null}
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(true)}
+              disabled={!imageSrc}
+              className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100 disabled:pointer-events-none disabled:opacity-0"
+              aria-label="Enlarge image"
             >
-              {fileName}
-            </p>
-            <p className="mt-2 text-center text-[11px] text-slate-500">
-              {included.length} of {keywords.length} keywords included for export
-            </p>
-          </motion.div>
+              <ZoomIn className="h-7 w-7 text-white" />
+            </button>
+          </div>
         </div>
+        <p
+          className="mt-3 break-all text-center text-xs text-slate-400"
+          title={fileName}
+        >
+          {fileName}
+        </p>
+        <p className="mt-2 text-center text-[11px] text-slate-500">
+          {included.length} of {keywords.length} keywords included for export
+        </p>
+      </motion.div>
 
-        <div className="min-w-0 xl:col-span-8">
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.05 }}
-            className="flex h-full min-h-[280px] flex-col rounded-xl bg-slate-800 p-4 ring-1 ring-slate-700"
-          >
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+        className="flex min-h-[280px] flex-col rounded-xl bg-slate-800 p-4 ring-1 ring-slate-700"
+      >
             <div className="mb-3 flex flex-wrap items-start justify-between gap-3 border-b border-slate-700/80 pb-3">
               <div>
                 <h3 className="text-sm font-medium text-slate-200">Keywords</h3>
@@ -182,9 +183,7 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
                 })}
               </div>
             </div>
-          </motion.div>
-        </div>
-      </div>
+      </motion.div>
 
       <ImageModal
         isOpen={isModalOpen}

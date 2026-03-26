@@ -65,45 +65,42 @@ export default function UploadScreen({
         </div>
       ) : null}
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Preview Panel */}
-        <div className="flex flex-col gap-3">
-          <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-2xl border border-slate-800/80 bg-slate-900/50 shadow-inner">
+      <div className="mx-auto flex w-full max-w-md flex-col gap-6">
+        {/* Preview — fixed height so image aspect does not resize the box */}
+        <div className="w-full overflow-hidden rounded-xl bg-slate-800 ring-1 ring-slate-700">
+          <div className="flex h-44 items-center justify-center bg-slate-900/70 px-2">
             {previewUrl ? (
               <img
                 src={previewUrl}
-                alt="Preview"
-                className="h-full w-full object-contain p-4 transition-opacity duration-300"
+                alt={`Preview ${previewIndex + 1} of ${files.length}`}
+                className="max-h-full max-w-full object-contain"
               />
             ) : (
-              <div className="flex flex-col items-center gap-2 text-slate-600">
-                <svg className="h-12 w-12" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0 0 22.5 18.75V5.25A2.25 2.25 0 0 0 20.25 3H3.75A2.25 2.25 0 0 0 1.5 5.25v13.5A2.25 2.25 0 0 0 3.75 21Z" />
-                </svg>
-                <span className="text-sm">No image selected</span>
-              </div>
+              <span className="text-xs text-slate-500">No image selected</span>
             )}
           </div>
 
           {showNav ? (
-            <div className="flex items-center justify-center gap-3">
+            <div className="flex items-center justify-center gap-3 border-t border-slate-700 py-2.5">
               <button
+                type="button"
                 onClick={() => setPreviewIndex((i) => Math.max(0, i - 1))}
                 disabled={previewIndex <= 0}
-                className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-800 text-slate-300 ring-1 ring-slate-700 transition-all hover:bg-slate-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-md bg-slate-700 px-2.5 py-1 text-xs text-slate-200 disabled:cursor-not-allowed disabled:opacity-40"
                 aria-label="Previous file preview"
               >
                 ←
               </button>
-              <span className="min-w-[4rem] text-center text-sm font-medium text-slate-400">
+              <span className="min-w-[5rem] text-center text-xs text-slate-400">
                 {previewIndex + 1} / {files.length}
               </span>
               <button
+                type="button"
                 onClick={() =>
                   setPreviewIndex((i) => Math.min(files.length - 1, i + 1))
                 }
                 disabled={previewIndex >= files.length - 1}
-                className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-800 text-slate-300 ring-1 ring-slate-700 transition-all hover:bg-slate-700 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-md bg-slate-700 px-2.5 py-1 text-xs text-slate-200 disabled:cursor-not-allowed disabled:opacity-40"
                 aria-label="Next file preview"
               >
                 →
@@ -112,7 +109,6 @@ export default function UploadScreen({
           ) : null}
         </div>
 
-        {/* Upload Panel */}
         <div className="flex flex-col gap-4">
           <div
             tabIndex={0}

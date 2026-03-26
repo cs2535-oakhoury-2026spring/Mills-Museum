@@ -19,7 +19,6 @@ export default function ReviewView({
   const canGoPrev = resultIndex > 0
   const canGoNext = resultIndex < results.length - 1
 
-  const successCount = results.filter((r) => r.type === 'success').length
   const errorCount = results.filter((r) => r.type === 'error').length
 
   return (
@@ -54,17 +53,13 @@ export default function ReviewView({
           </button>
         </div>
 
-        {/* Stats */}
-        <div className="flex items-center gap-3">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400 ring-1 ring-emerald-500/20">
-            {successCount} processed
-          </span>
-          {errorCount > 0 && (
+        {errorCount > 0 ? (
+          <div className="flex items-center gap-3">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500/10 px-3 py-1 text-xs font-medium text-red-400 ring-1 ring-red-500/20">
               {errorCount} failed
             </span>
-          )}
-        </div>
+          </div>
+        ) : null}
 
         {/* Actions */}
         <div className="flex items-center gap-2">
@@ -110,8 +105,7 @@ export default function ReviewView({
       ) : current?.type === 'success' ? (
         <ResultDisplay
           keywords={current.keywords}
-          previewUrl={current.previewUrl}
-          processingTime={current.processingTime}
+          imageSrc={current.previewUrl}
           onKeywordsChange={(next) => onKeywordsChange(resultIndex, next)}
           fileName={current.file.name}
         />
