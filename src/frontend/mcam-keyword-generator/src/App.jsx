@@ -102,23 +102,55 @@ export default function App() {
   }
 
   return (
-    <div className="mcam-app min-h-screen bg-slate-950 px-4 py-10 text-slate-100">
-      <div className="mx-auto max-w-6xl">
-        <header className="mb-10 text-center">
-          <h1 className="text-slate-50">MCAM Art Keyword Generator</h1>
-          <p className="mcam-subtitle mt-2 max-w-2xl mx-auto text-slate-400">
+    <div className="flex min-h-screen flex-col bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-100">
+      <header className="sticky top-0 z-30 border-b border-slate-800/60 bg-slate-950/80 backdrop-blur-lg">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 text-sm font-bold text-white shadow-lg shadow-amber-500/20">
+              M
+            </div>
+            <div>
+              <h1 className="text-lg font-semibold tracking-tight text-white">
+                MCAM Keyword Generator
+              </h1>
+              <p className="text-xs text-slate-400">
+                Mills College Art Museum · AAT Pipeline
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400 ring-1 ring-emerald-500/20">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              {phase === 'upload'
+                ? 'Ready'
+                : phase === 'processing'
+                  ? 'Processing'
+                  : 'Review'}
+            </span>
+          </div>
+        </div>
+      </header>
+
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-8 sm:px-6 sm:py-10">
+        <div className="mb-8 text-center">
+          <h2 className="text-xl font-medium text-slate-50 sm:text-2xl">
+            MCAM Art Keyword Generator
+          </h2>
+          <p className="mcam-subtitle mx-auto mt-2 max-w-2xl text-slate-400">
             Upload artwork images to automatically generate AAT keywords for
             cataloging.
           </p>
-        </header>
+        </div>
 
-        <div className="flex w-full justify-center">
+        <div className="flex w-full min-w-0 flex-1 justify-center">
           {phase === 'upload' ? (
-            <UploadScreen
-              onRequestProcess={handleRequestProcess}
-              errorMessage={batchError}
-              onDismissError={() => setBatchError('')}
-            />
+            <div className="mx-auto w-full max-w-md min-w-0 shrink-0">
+              <UploadScreen
+                onRequestProcess={handleRequestProcess}
+                errorMessage={batchError}
+                onDismissError={() => setBatchError('')}
+              />
+            </div>
           ) : null}
 
           {phase === 'processing' ? (
@@ -131,7 +163,7 @@ export default function App() {
           ) : null}
 
           {phase === 'result' ? (
-            <div className="w-full">
+            <div className="w-full min-w-0">
               <ReviewView
                 results={results}
                 resultIndex={resultIndex}
@@ -142,7 +174,13 @@ export default function App() {
             </div>
           ) : null}
         </div>
-      </div>
+      </main>
+
+      <footer className="border-t border-slate-800/60 bg-slate-950/60 py-4 text-center text-xs text-slate-500">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          Mills College Art Museum · AAT keyword pipeline
+        </div>
+      </footer>
     </div>
   )
 }
