@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+import csv
+from datetime import datetime
+from pathlib import Path
+import tempfile
+
 import gradio as gr
 import torch
 from PIL import Image
@@ -15,10 +20,35 @@ from src.frontend.keyword_feedback import (
 
 DEFAULT_KEYWORD_COUNT = 10
 DEFAULT_CANDIDATE_POOL_SIZE = 40
+REPO_DEMO_IMAGES: list[str] = []
+EXPORT_DIR: str | None = None
 
 
 def empty_app_state() -> dict:
     return {"all_results": {}, "current_index": 0}
+
+
+def configure_backend_runtime(collection, embedding_model, reranking_model):
+    globals()["collection"] = collection
+    globals()["embedding_model"] = embedding_model
+    globals()["reranking_model"] = reranking_model
+
+
+def configure_demo_assets(
+    image_paths: list[str] | None = None,
+    export_dir: str | None = None,
+):
+    normalized_images = []
+    for image_path in image_paths or []:
+        resolved = str(Path(image_path).expanduser().resolve())
+        if Path(resolved).exists():
+            normalized_images.append(resolved)
+    globals()["REPO_DEMO_IMAGES"] = normalized_images
+
+    if export_dir:
+        export_path = Path(export_dir).expanduser().resolve()
+        export_path.mkdir(parents=True, exist_ok=True)
+        globals()["EXPORT_DIR"] = str(export_path)
 
 
 def get_backend_runtime():
@@ -61,6 +91,25 @@ def on_upload(files):
         return None, "No images selected", 0
     img, counter = preview_image(files, 0)
     return img, counter, 0
+
+
+def default_repo_files():
+    return REPO_DEMO_IMAGES.copy() or None
+
+
+def initialize_upload_defaults():
+    files = default_repo_files()
+    if not files:
+        return None, None, "No images selected", 0, "Upload images to start."
+
+    image, counter = preview_image(files, 0)
+    return (
+        files,
+        image,
+        counter,
+        0,
+        f"Loaded {len(files)} repository demo image(s). Click Generate Keywords to run the model.",
+    )
 
 
 def build_keyword_choices(result):
@@ -230,6 +279,7 @@ def process_multiple_images(images, state):
             result["status_message"] = (
                 "Suggestions ready. Uncheck any weak keywords, then regenerate only those slots."
             )
+            result["source_path"] = str(image_path)
             state["all_results"][idx] = result
             processed_count += 1
         except Exception as exc:
@@ -243,6 +293,7 @@ def process_multiple_images(images, state):
                 "target_count": 0,
                 "error": str(exc),
                 "status_message": "Processing failed for this image.",
+                "source_path": str(image_path),
             }
 
     if not state["all_results"]:
@@ -348,31 +399,87 @@ def previous_image(state):
 
 
 def upload_more():
+    repo_files = default_repo_files()
+    preview_image_value = None
+    preview_counter_text = "No images selected"
+    status_text_value = "Upload images to start."
+
+    if repo_files:
+        preview_image_value, preview_counter_text = preview_image(repo_files, 0)
+        status_text_value = (
+            f"Loaded {len(repo_files)} repository demo image(s). Click Generate Keywords to run the model."
+        )
+
     return (
         gr.update(visible=True),
         gr.update(visible=False),
-        gr.update(value="Upload images to start.", visible=True),
+        gr.update(value=status_text_value, visible=True),
+        gr.update(value=repo_files),
+        preview_image_value,
         None,
         "No image loaded",
         gr.update(choices=[], value=[]),
         "",
         build_action_feedback("Select one or more artwork images to begin."),
         "",
+        gr.update(value=None, visible=False),
         empty_app_state(),
-        "No images selected",
+        preview_counter_text,
         0,
     )
 
 
 def export_results(state):
     if not state.get("all_results"):
-        return "No processed results to export yet."
+        return "No processed results to export yet.", None, build_action_feedback(
+            "Generate keywords before exporting.", "warning"
+        )
 
     output = []
+    csv_rows = []
     for idx in sorted(state["all_results"].keys()):
-        labels = export_labels(state["all_results"][idx])
+        result = state["all_results"][idx]
+        labels = export_labels(result)
         output.append(f"Image {idx + 1}: {', '.join(labels) if labels else 'No selected keywords'}")
-    return "\n\n".join(output)
+        candidate_by_key = candidate_lookup(result)
+        selected_keys = set(result.get("selected_terms", []))
+        for term_key in result.get("visible_terms", []):
+            if term_key not in selected_keys:
+                continue
+            candidate = candidate_by_key.get(term_key)
+            if candidate is None:
+                continue
+            csv_rows.append(
+                {
+                    "image_index": idx + 1,
+                    "source_path": result.get("source_path", ""),
+                    "keyword": candidate["label"],
+                    "term_id": candidate.get("term_id") or "",
+                    "score": f"{candidate['score']:.6f}",
+                }
+            )
+
+    export_root = Path(EXPORT_DIR or (Path(tempfile.gettempdir()) / "mcam_exports"))
+    export_root.mkdir(parents=True, exist_ok=True)
+    export_path = export_root / f"mcam_keywords_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+
+    with export_path.open("w", newline="", encoding="utf-8") as csv_file:
+        writer = csv.DictWriter(
+            csv_file,
+            fieldnames=["image_index", "source_path", "keyword", "term_id", "score"],
+        )
+        writer.writeheader()
+        writer.writerows(csv_rows)
+
+    feedback = build_action_feedback(
+        f"Prepared CSV export at {export_path}. Use the download button to save it.",
+        "success",
+    )
+    return (
+        "\n\n".join(output),
+        gr.update(value=str(export_path), visible=True),
+        feedback,
+    )
 
 
 css = """
@@ -602,6 +709,7 @@ with gr.Blocks(css=css, theme=theme, title="MCAM Art Keyword Generator") as inte
                         file_count="multiple",
                         file_types=["image"],
                         label="Artwork Images",
+                        value=default_repo_files,
                     )
                 with gr.Column(scale=2):
                     process_btn = gr.Button("Generate Keywords", variant="primary", size="lg")
@@ -653,6 +761,10 @@ with gr.Blocks(css=css, theme=theme, title="MCAM Art Keyword Generator") as inte
                             size="lg",
                         )
                         export_btn = gr.Button("Export Selected Keywords", variant="secondary")
+                    download_csv_btn = gr.DownloadButton(
+                        "Download CSV Export",
+                        visible=False,
+                    )
                     export_output = gr.Textbox(
                         label="Export Preview",
                         lines=10,
@@ -664,6 +776,12 @@ with gr.Blocks(css=css, theme=theme, title="MCAM Art Keyword Generator") as inte
         fn=on_upload,
         inputs=[upload_input],
         outputs=[current_image, preview_counter, preview_index],
+    )
+
+    interface.load(
+        fn=initialize_upload_defaults,
+        inputs=[],
+        outputs=[upload_input, current_image, preview_counter, preview_index, status_text],
     )
 
     preview_next_btn.click(
@@ -750,7 +868,7 @@ with gr.Blocks(css=css, theme=theme, title="MCAM Art Keyword Generator") as inte
     export_btn.click(
         fn=export_results,
         inputs=[state],
-        outputs=[export_output],
+        outputs=[export_output, download_csv_btn, action_feedback],
     )
 
     upload_more_btn.click(
@@ -760,17 +878,21 @@ with gr.Blocks(css=css, theme=theme, title="MCAM Art Keyword Generator") as inte
             upload_section,
             nav_section,
             status_text,
+            upload_input,
+            current_image,
             current_image_review,
             image_counter,
             keyword_checkboxes,
             review_summary,
             action_feedback,
             export_output,
+            download_csv_btn,
             state,
             preview_counter,
             preview_index,
         ],
     )
 
-print("Launching Gradio interface...")
-interface.launch(share=True)
+if __name__ == "__main__":
+    print("Launching Gradio interface...")
+    interface.launch(share=True)
