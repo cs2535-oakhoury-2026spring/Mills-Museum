@@ -23,15 +23,23 @@ This project can be devided into two parts:
 
 
 ## User Interface
-The user interface is the connector between what museum staff interact and the art peice labeling pipeline. It allows 
-for a clean centralized interface for uploading, monitoring, and extracting images with their respective AAT keywords. 
-It allows the user to approve or reject keyword recommendations and allows for user-to-agent communication to
-improve the quality of the labeling process.
+The user interface connects museum staff to the labeling pipeline: a single place to upload artwork images, watch processing progress, and review model-generated AAT keyword suggestions. Staff can include or exclude individual keywords before copying or exporting results; batch uploads are supported with navigation between images.
 
 ### Specs
 
-[!IMPORTANT]
-Hi team, finish the UI design specifications as well as a brief general design choice.
+**Stack.** The web app lives under `src/frontend/mcam-keyword-generator/`. It is built with **React 18**, **Vite 5**, and **Tailwind CSS v4**, with **Lucide React** for icons and **Motion** for light transitions on key screens.
+
+**Design choices.** The UI uses a **dark slate** gradient background and card surfaces with subtle rings so attention stays on the artwork and keyword list. **Amber and orange** accents mark primary actions (for example, “Generate Keywords”) and **selected** keyword tiles so recommendations read as reviewable highlights rather than plain text. The header shows a simple **phase** indicator (Ready / Processing / Review) so the flow stays obvious: **Upload → Processing → Review**.
+
+**Screens (implemented behavior).**
+
+- **Upload:** Image preview with drag-and-drop or file picker; multiple files with prev/next preview. Users set how many keywords to request (**1–50**, default **20**) via a range slider and number field, then run **Generate Keywords**.
+- **Processing:** Progress bar, current image preview, and a status line (for example, which image in a batch is running).
+- **Review:** For each image, a large preview plus filename; a **keyword grid** showing **term name** and **confidence percentage** (definitions appended in API labels are stripped for display). Each keyword has a **checkbox** to include or exclude it from copy and export. Users can **filter** the list, **copy** included keywords, download a **per-image TXT** export, and **export all** batch results to a single text file. When multiple images are processed, prev/next moves between results; errors for individual files are surfaced in the review flow.
+
+**API and configuration.** The client calls `POST {VITE_API_URL}/predict` with **multipart form data**: `file` (image) and `term_count` (integer string, clamped 1–50 in the app). Set `VITE_API_URL` in `.env.local` (for example, your ngrok URL). The request sends an `ngrok-skip-browser-warning` header for compatibility with ngrok-hosted backends. The backend should return JSON shaped like `{ "keywords": [ { "label" or "text": "...", "score": <number> }, ... ] }`. Scores are treated as percentages in the UI (see `mapApiKeyword` in `src/frontend/mcam-keyword-generator/src/utils/keywordAdapters.js`); long labels that include `"term : definition"` are trimmed to the term name for display only.
+
+**Local development.** From the repo root: `npm -C src/frontend/mcam-keyword-generator install` then `npm -C src/frontend/mcam-keyword-generator run dev`. A mock backend is available via `npm -C src/frontend/mcam-keyword-generator run mock` (default `http://localhost:8000`).
 
 
 ## Pipeline
