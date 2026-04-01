@@ -5,6 +5,9 @@ transformers
 pillow
 chromadb
 pandas
+pyarrow
+plotly
+gradio
 openpyxl
 datasets
 tqdm
