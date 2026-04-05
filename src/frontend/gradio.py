@@ -638,7 +638,9 @@ theme = gr.themes.Soft(
     button_large_radius="999px",
 )
 
-with gr.Blocks(css=css, theme=theme, title="MCAM Art Keyword Generator") as interface:
+LOGO_PATH = str(Path(__file__).parent / "~/media/logo.png")
+
+with gr.Blocks(css=css, theme=theme, title="MCAM Art Keyword Generator", favicon_path=LOGO_PATH) as interface:
     with gr.Column(elem_classes=["app-shell"]):
         gr.HTML(
             """

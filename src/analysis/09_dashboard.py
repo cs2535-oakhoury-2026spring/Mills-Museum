@@ -16,15 +16,15 @@ century_pattern = re.compile(r'(\d+)(?:st|nd|rd|th)\s+centur', re.IGNORECASE)
 # Match project palette: warm cream bg, emerald accent, stone muted
 CHART_LAYOUT = dict(
     paper_bgcolor="rgba(0,0,0,0)",
-    plot_bgcolor="rgba(243,239,231,0.4)",
-    font=dict(family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color="#2b241f", size=12),
+    plot_bgcolor="rgba(15,30,54,0.4)",
+    font=dict(family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color="#f0e6d0", size=12),
     margin=dict(l=50, r=30, t=40, b=40),
 )
 
-EMERALD = "#355c4d"
-WARM = "#9d6b2f"
-PALETTE = ["#355c4d", "#6b9e8a", "#9d6b2f", "#c4956a", "#5a7f6e",
-           "#8b7355", "#4a8b72", "#b8956d", "#3d7a5f", "#a07b5a", "#7aab94", "#c9a97a"]
+EMERALD = "#f0c040"
+WARM = "#e8b616"
+PALETTE = ["#f0c040", "#e8b616", "#d4a017", "#5b749a", "#6c85a8",
+           "#8a9bb8", "#c4960e", "#4a6385", "#f5d060", "#b08c12", "#3b5170", "#ffd866"]
 
 figs = {}
 
@@ -33,8 +33,8 @@ counts = df["hierarchy"].value_counts()
 figs["facet_donut"] = go.Figure(go.Pie(
     labels=counts.index.tolist(), values=counts.values.tolist(),
     hole=0.48, textinfo="percent", textposition="inside",
-    textfont=dict(size=10, color="#fff"),
-    marker=dict(colors=PALETTE, line=dict(color="#f3efe7", width=2)),
+    textfont=dict(size=10, color="#0a1628"),
+    marker=dict(colors=PALETTE, line=dict(color="#0a1628", width=2)),
     hovertemplate="<b>%{label}</b><br>%{value:,} terms (%{percent})<extra></extra>",
     sort=False
 ))
@@ -55,7 +55,7 @@ z_data = [[facet_century[f].get(c, 0) for c in centuries] for f in facet_order]
 
 figs["century_heatmap"] = go.Figure(go.Heatmap(
     z=z_data, x=[f"{c}th" for c in centuries], y=facet_order,
-    colorscale=[[0, "#f3efe7"], [0.2, "#dce9e2"], [0.5, "#6b9e8a"], [0.8, "#355c4d"], [1, "#1a3329"]],
+    colorscale=[[0, "#0a1628"], [0.15, "#1a2d4a"], [0.4, "#5b749a"], [0.7, "#d4a017"], [1, "#f0c040"]],
     hoverongaps=False,
     hovertemplate="%{y}<br>%{x} century: <b>%{z}</b> mentions<extra></extra>"
 ))
@@ -71,9 +71,9 @@ figs["sunburst"] = px.sunburst(
 )
 figs["sunburst"].update_layout(**CHART_LAYOUT, height=580)
 figs["sunburst"].update_traces(
-    textfont=dict(color="#2b241f", size=11),
+    textfont=dict(color="#f0e6d0", size=11),
     insidetextorientation="radial",
-    marker=dict(line=dict(color="#f3efe7", width=1.5))
+    marker=dict(line=dict(color="#0a1628", width=1.5))
 )
 
 # ─── 4. Keyword × century heatmap ───
@@ -98,7 +98,7 @@ z_kw = [[kw_century[kw].get(c, 0) for c in centuries] for kw in kws_with_data]
 
 figs["kw_trend"] = go.Figure(go.Heatmap(
     z=z_kw, x=[f"{c}th" for c in centuries], y=kws_with_data,
-    colorscale=[[0, "#f3efe7"], [0.2, "#f7e8ce"], [0.5, "#c4956a"], [0.8, "#9d6b2f"], [1, "#5a3a12"]],
+    colorscale=[[0, "#0a1628"], [0.2, "#1a2d4a"], [0.5, "#c4960e"], [0.8, "#e8b616"], [1, "#f0c040"]],
     hoverongaps=False,
     hovertemplate="<b>%{y}</b> in the %{x} century: %{z} mentions<extra></extra>"
 ))
@@ -156,7 +156,7 @@ for region in geo_patterns:
 
 figs["geo_time"] = px.area(
     pd.DataFrame(geo_rows), x="Century", y="Mentions", color="Region",
-    color_discrete_sequence=["#355c4d", "#6b9e8a", "#9d6b2f", "#c4956a", "#8b7355"]
+    color_discrete_sequence=["#f0c040", "#e8b616", "#d4a017", "#5b749a", "#8a9bb8"]
 )
 figs["geo_time"].update_layout(**CHART_LAYOUT, height=420, hovermode="x unified")
 
@@ -179,7 +179,7 @@ for variants in df["variant_terms"]:
 figs["scripts"] = go.Figure(go.Pie(
     labels=list(lang_counts.keys()), values=list(lang_counts.values()),
     hole=0, textinfo="label+percent", textfont=dict(size=14, color="#fff"),
-    marker=dict(colors=[EMERALD, "#9d6b2f", "#b8a898"], line=dict(color="#f3efe7", width=3)),
+    marker=dict(colors=[EMERALD, "#5b749a", "#8a9bb8"], line=dict(color="#0a1628", width=3)),
     hovertemplate="<b>%{label}</b><br>%{value:,} terms (%{percent})<extra></extra>",
     pull=[0, 0.06, 0.1]
 ))
@@ -218,17 +218,17 @@ html = f"""<!DOCTYPE html>
 <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 <style>
 :root {{
-    --bg: #f3efe7;
-    --bg2: #fcfaf6;
-    --surface: rgba(255,252,246,0.94);
-    --ink: #2b241f;
-    --muted: #6d6157;
-    --accent: #355c4d;
-    --accent-soft: #dce9e2;
-    --warm: #9d6b2f;
-    --warm-soft: #f7e8ce;
-    --border: rgba(53,92,77,0.18);
-    --shadow: 0 18px 60px rgba(58,44,33,0.08);
+    --bg: #0a1628;
+    --bg2: #0f1e36;
+    --surface: rgba(15,30,54,0.94);
+    --ink: #f0e6d0;
+    --muted: #8a9bb8;
+    --accent: #f0c040;
+    --accent-soft: rgba(240,192,64,0.15);
+    --warm: #e8b616;
+    --warm-soft: rgba(232,182,22,0.12);
+    --border: rgba(212,160,23,0.2);
+    --shadow: 0 18px 60px rgba(0,0,0,0.4);
     --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }}
 
@@ -264,10 +264,10 @@ body {{
     position: absolute; inset: 0;
     background: linear-gradient(
         to bottom,
-        rgba(243,239,231,0.25) 0%,
-        rgba(243,239,231,0.5) 35%,
-        rgba(243,239,231,0.88) 65%,
-        rgba(243,239,231,1) 100%
+        rgba(10,22,40,0.25) 0%,
+        rgba(10,22,40,0.5) 35%,
+        rgba(10,22,40,0.88) 65%,
+        rgba(10,22,40,1) 100%
     );
 }}
 .hero-content {{
@@ -348,7 +348,7 @@ body {{
 nav {{ position: sticky; top:0; z-index:1000; }}
 .nav-bar {{
     position: relative;
-    background: rgba(243,239,231,0.88);
+    background: rgba(10,22,40,0.88);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--border);
@@ -587,10 +587,10 @@ footer a {{ color: var(--accent); text-decoration: none; }}
 <!-- NAV WITH BIRDS -->
 <nav>
     <div class="nav-bar">
-        <div class="bird"><svg class="bird-idle" viewBox="0 0 40 24" fill="none"><path d="M20 12c-4-6-12-8-18-6 4 1 8 4 10 8M20 12c4-6 12-8 18-6-4 1-8 4-10 8" stroke="#355c4d" stroke-width="1.5" stroke-linecap="round"/><circle cx="20" cy="13" r="2" fill="#355c4d" opacity="0.6"/></svg></div>
-        <div class="bird"><svg class="bird-idle" viewBox="0 0 40 24" fill="none"><path d="M20 12c-4-6-12-8-18-6 4 1 8 4 10 8M20 12c4-6 12-8 18-6-4 1-8 4-10 8" stroke="#355c4d" stroke-width="1.5" stroke-linecap="round"/><circle cx="20" cy="13" r="2" fill="#355c4d" opacity="0.6"/></svg></div>
-        <div class="bird"><svg class="bird-idle" viewBox="0 0 40 24" fill="none"><path d="M20 12c-4-6-12-8-18-6 4 1 8 4 10 8M20 12c4-6 12-8 18-6-4 1-8 4-10 8" stroke="#355c4d" stroke-width="1.5" stroke-linecap="round"/><circle cx="20" cy="13" r="2" fill="#355c4d" opacity="0.6"/></svg></div>
-        <div class="bird"><svg class="bird-idle" viewBox="0 0 40 24" fill="none"><path d="M20 12c-4-6-12-8-18-6 4 1 8 4 10 8M20 12c4-6 12-8 18-6-4 1-8 4-10 8" stroke="#355c4d" stroke-width="1.5" stroke-linecap="round"/><circle cx="20" cy="13" r="2" fill="#355c4d" opacity="0.6"/></svg></div>
+        <div class="bird"><svg class="bird-idle" viewBox="0 0 40 24" fill="none"><path d="M20 12c-4-6-12-8-18-6 4 1 8 4 10 8M20 12c4-6 12-8 18-6-4 1-8 4-10 8" stroke="#0f1a2e" stroke-width="1.5" stroke-linecap="round"/><circle cx="20" cy="13" r="2" fill="#0f1a2e" opacity="0.6"/></svg></div>
+        <div class="bird"><svg class="bird-idle" viewBox="0 0 40 24" fill="none"><path d="M20 12c-4-6-12-8-18-6 4 1 8 4 10 8M20 12c4-6 12-8 18-6-4 1-8 4-10 8" stroke="#0f1a2e" stroke-width="1.5" stroke-linecap="round"/><circle cx="20" cy="13" r="2" fill="#0f1a2e" opacity="0.6"/></svg></div>
+        <div class="bird"><svg class="bird-idle" viewBox="0 0 40 24" fill="none"><path d="M20 12c-4-6-12-8-18-6 4 1 8 4 10 8M20 12c4-6 12-8 18-6-4 1-8 4-10 8" stroke="#0f1a2e" stroke-width="1.5" stroke-linecap="round"/><circle cx="20" cy="13" r="2" fill="#0f1a2e" opacity="0.6"/></svg></div>
+        <div class="bird"><svg class="bird-idle" viewBox="0 0 40 24" fill="none"><path d="M20 12c-4-6-12-8-18-6 4 1 8 4 10 8M20 12c4-6 12-8 18-6-4 1-8 4-10 8" stroke="#0f1a2e" stroke-width="1.5" stroke-linecap="round"/><circle cx="20" cy="13" r="2" fill="#0f1a2e" opacity="0.6"/></svg></div>
         <a href="#overview" class="nav-link">The Collection</a>
         <a href="#centuries" class="nav-link">Through Time</a>
         <a href="#sunburst" class="nav-link">Hierarchy</a>
@@ -783,10 +783,10 @@ sects.forEach(s => navObs.observe(s));
 (function() {{
     const container = document.getElementById('leaves');
     const leafSVGs = [
-        `<svg width="20" height="22" viewBox="0 0 20 22" fill="none"><path d="M10 0C10 0 2 8 2 14c0 4 3.5 7 8 7s8-3 8-7C18 8 10 0 10 0z" fill="#6b9e8a" opacity="0.55"/></svg>`,
-        `<svg width="18" height="20" viewBox="0 0 18 20" fill="none"><ellipse cx="9" cy="10" rx="7" ry="10" fill="#9d6b2f" opacity="0.45" transform="rotate(15 9 10)"/></svg>`,
-        `<svg width="16" height="18" viewBox="0 0 16 18" fill="none"><path d="M8 0C5 4 0 8 0 12c0 3 3 6 8 6s8-3 8-6C16 8 11 4 8 0z" fill="#c4956a" opacity="0.5"/></svg>`,
-        `<svg width="14" height="16" viewBox="0 0 14 16" fill="none"><path d="M7 0C4 3 0 6 0 10c0 3 3 6 7 6s7-3 7-6C14 6 10 3 7 0z" fill="#355c4d" opacity="0.35"/></svg>`,
+        `<svg width="20" height="22" viewBox="0 0 20 22" fill="none"><path d="M10 0C10 0 2 8 2 14c0 4 3.5 7 8 7s8-3 8-7C18 8 10 0 10 0z" fill="#2a3f5c" opacity="0.55"/></svg>`,
+        `<svg width="18" height="20" viewBox="0 0 18 20" fill="none"><ellipse cx="9" cy="10" rx="7" ry="10" fill="#d4a017" opacity="0.45" transform="rotate(15 9 10)"/></svg>`,
+        `<svg width="16" height="18" viewBox="0 0 16 18" fill="none"><path d="M8 0C5 4 0 8 0 12c0 3 3 6 8 6s8-3 8-6C16 8 11 4 8 0z" fill="#e8b616" opacity="0.5"/></svg>`,
+        `<svg width="14" height="16" viewBox="0 0 14 16" fill="none"><path d="M7 0C4 3 0 6 0 10c0 3 3 6 7 6s7-3 7-6C14 6 10 3 7 0z" fill="#0f1a2e" opacity="0.35"/></svg>`,
     ];
 
     for (let i = 0; i < 18; i++) {{

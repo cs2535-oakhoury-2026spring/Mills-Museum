@@ -18,16 +18,16 @@ STOPWORDS = {"and", "of", "the", "for", "in", "with", "a", "an", "to", "or", "by
 FONT_STACK = "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
 
 # Muted, harmonious palette — greens and warm tans, no jarring jumps
-PALETTE = ["#3d7a5f", "#6b9e8a", "#8aaa7a", "#a8b894", "#b5a67a",
-           "#c4a46e", "#a89470", "#8e9e80", "#5e8e72", "#7aab94", "#9ab88a", "#c9bc8a"]
+PALETTE = ["#f0c040", "#e8b616", "#d4a017", "#5b749a", "#6c85a8",
+           "#8a9bb8", "#c4960e", "#4a6385", "#f5d060", "#b08c12", "#3b5170", "#ffd866"]
 
 GH_REPO = "https://github.com/cs2535-oakhoury-2026spring/Mills-Museum"
 
 CHART_LAYOUT = dict(
     margin=dict(l=24, r=24, t=40, b=24),
-    paper_bgcolor="#fffbf5",
-    plot_bgcolor="#fffbf5",
-    font=dict(family=FONT_STACK, color="#3a3530", size=12),
+    paper_bgcolor="#0f1e36",
+    plot_bgcolor="#0f1e36",
+    font=dict(family=FONT_STACK, color="#f0e6d0", size=12),
 )
 
 
@@ -65,7 +65,7 @@ def build_facet_river(df: pd.DataFrame) -> go.Figure:
     counts.columns = ["Facet", "Terms"]
     counts["Share"] = counts["Terms"] / counts["Terms"].sum()
     fig = px.bar(counts, x="Terms", y="Facet", orientation="h",
-                 color="Share", color_continuous_scale=["#d4e6dc", "#6b9e8a", "#3d7a5f"])
+                 color="Share", color_continuous_scale=["#1a2d4a", "#d4a017", "#f0c040"])
     fig.update_layout(**CHART_LAYOUT, showlegend=False, coloraxis_showscale=False, height=380,
                       xaxis_title="", yaxis_title="",
                       title=dict(text="Term count by facet", font=dict(size=13)))
@@ -79,10 +79,10 @@ def build_sunburst(df: pd.DataFrame) -> go.Figure:
     top_parents = (df.groupby(["hierarchy", "parent_term"]).size().reset_index(name="count")
                    .sort_values("count", ascending=False).groupby("hierarchy").head(5))
     fig = px.sunburst(top_parents, path=["hierarchy", "parent_term"], values="count",
-                      color="count", color_continuous_scale=["#d4e6dc", "#6b9e8a", "#3d7a5f", "#2d5a47"])
+                      color="count", color_continuous_scale=["#1a2d4a", "#5b749a", "#d4a017", "#f0c040"])
     fig.update_layout(**CHART_LAYOUT, height=440, coloraxis_showscale=False,
                       title=dict(text="Taxonomy clusters — click to explore", font=dict(size=13)))
-    fig.update_traces(textfont=dict(color="#3a3530"))
+    fig.update_traces(textfont=dict(color="#f0e6d0"))
     return fig
 
 
@@ -99,7 +99,7 @@ def build_century_heatmap(df: pd.DataFrame) -> go.Figure:
     z = [[facet_century[f].get(c, 0) for c in centuries] for f in facet_order]
     fig = go.Figure(go.Heatmap(
         z=z, x=[f"{c}th" for c in centuries], y=facet_order,
-        colorscale=[[0, "#faf7f2"], [0.15, "#d6e8df"], [0.4, "#6e9a82"], [0.7, "#2d5a47"], [1, "#162e24"]],
+        colorscale=[[0, "#0a1628"], [0.15, "#1a2d4a"], [0.4, "#5b749a"], [0.7, "#d4a017"], [1, "#f0c040"]],
         hovertemplate="%{y}<br>%{x} century: <b>%{z}</b><extra></extra>"))
     fig.update_layout(**CHART_LAYOUT, height=400, yaxis=dict(autorange="reversed"), xaxis=dict(side="top"),
                       title=dict(text="Century references across facets", font=dict(size=13)))
@@ -127,7 +127,7 @@ def build_kw_century(df: pd.DataFrame) -> go.Figure:
     z = [[kw_century[w].get(c, 0) for c in centuries] for w in ranked]
     fig = go.Figure(go.Heatmap(
         z=z, x=[f"{c}th" for c in centuries], y=ranked,
-        colorscale=[[0, "#faf7f2"], [0.2, "#f0e2c8"], [0.5, "#c4956a"], [0.8, "#8a6424"], [1, "#4a3410"]],
+        colorscale=[[0, "#0a1628"], [0.2, "#1a2d4a"], [0.5, "#c4960e"], [0.8, "#e8b616"], [1, "#f0c040"]],
         hovertemplate="<b>%{y}</b> in the %{x} century: %{z}<extra></extra>"))
     fig.update_layout(**CHART_LAYOUT, height=440, yaxis=dict(autorange="reversed"), xaxis=dict(side="top"),
                       title=dict(text="Keyword trends across centuries", font=dict(size=13)))
@@ -139,8 +139,8 @@ def build_depth_violin(df: pd.DataFrame) -> go.Figure:
     ddf["tree_depth"] = compute_tree_depths(ddf)
     fig = px.violin(ddf, x="hierarchy", y="tree_depth", color="hierarchy",
                     category_orders={"hierarchy": df["hierarchy"].value_counts().index.tolist()},
-                    color_discrete_sequence=["#3d7a5f", "#6b9e8a", "#8aaa7a", "#a8b894", "#b5a67a",
-                                             "#c4a46e", "#a89470", "#8e9e80", "#5e8e72", "#7aab94", "#9ab88a", "#c9bc8a"],
+                    color_discrete_sequence=["#f0c040", "#e8b616", "#d4a017", "#5b749a", "#6c85a8",
+                                             "#8a9bb8", "#c4960e", "#4a6385", "#f5d060", "#b08c12", "#3b5170", "#ffd866"],
                     box=True, points=False)
     fig.update_layout(**CHART_LAYOUT, showlegend=False, height=400, xaxis_title="", yaxis_title="Depth",
                       xaxis=dict(tickangle=30, tickfont=dict(size=9)),
@@ -169,7 +169,7 @@ def build_geo_area(df: pd.DataFrame) -> go.Figure:
                     geo_c[region][c] += 1
     rows = [{"Region": r, "Century": f"{c}th", "Mentions": geo_c[r].get(c, 0)} for r in geo_pats for c in centuries]
     fig = px.area(pd.DataFrame(rows), x="Century", y="Mentions", color="Region",
-                  color_discrete_sequence=["#3d7a5f", "#7aab94", "#b5a67a", "#c4a46e", "#8e9e80"])
+                  color_discrete_sequence=["#f0c040", "#e8b616", "#d4a017", "#5b749a", "#8a9bb8"])
     fig.update_layout(**CHART_LAYOUT, height=380, hovermode="x unified",
                       title=dict(text="Regional emphasis shifting over centuries", font=dict(size=13)))
     return fig
@@ -334,25 +334,25 @@ document.addEventListener('keydown', function(e) {
 # MAIN APP
 # ──────────────────────────────────────────────
 
-def create_interface() -> gr.Blocks:
+def create_interface() -> tuple[gr.Blocks, str, gr.themes.Soft]:
     df = load_dataset()
 
     css = """
     @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
 
     :root {
-        --bg: #f5f1ea;
-        --surface: #fffbf5;
-        --surface-hover: #faf6ee;
-        --border: rgba(45,90,71,0.12);
-        --ink: #3a3530;
-        --muted: #7a7168;
-        --accent: #2d5a47;
-        --accent-light: #d4e6dc;
-        --warm: #8a6424;
-        --warm-light: #f5e8d0;
-        --shadow-sm: 0 2px 8px rgba(43,36,31,0.04);
-        --shadow: 0 8px 32px rgba(43,36,31,0.06);
+        --bg: #0a1628;
+        --surface: #0f1e36;
+        --surface-hover: #142744;
+        --border: rgba(212,160,23,0.2);
+        --ink: #f0e6d0;
+        --muted: #8a9bb8;
+        --accent: #f0c040;
+        --accent-light: rgba(240,192,64,0.15);
+        --warm: #f0c040;
+        --warm-light: rgba(240,192,64,0.12);
+        --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
+        --shadow: 0 8px 32px rgba(0,0,0,0.4);
         --radius: 16px;
     }
 
@@ -555,10 +555,11 @@ def create_interface() -> gr.Blocks:
     }
     """
 
-    theme = gr.themes.Soft(primary_hue="emerald", secondary_hue="amber", neutral_hue="stone").set(
-        body_background_fill="transparent",
-        block_background_fill="rgba(255,255,255,0)",
-        block_border_width="0px",
+    theme = gr.themes.Soft(primary_hue="yellow", secondary_hue="slate", neutral_hue="slate").set(
+        body_background_fill="#0a1628",
+        block_background_fill="#0f1e36",
+        block_border_width="1px",
+        block_border_color="rgba(212,160,23,0.2)",
     )
 
     with gr.Blocks(css=css, theme=theme, title="Mills Museum Data Exhibit") as demo:
@@ -629,14 +630,14 @@ def create_interface() -> gr.Blocks:
 
         gr.HTML(MODAL_JS)
 
-    return demo
+    return demo, css, theme
 
 
-demo = create_interface()
+demo, _css, _theme = create_interface()
 
 
 def main() -> None:
-    demo.launch(server_name="127.0.0.1", server_port=7860)
+    demo.launch(server_name="127.0.0.1", server_port=7860, css=_css, theme=_theme)
 
 
 if __name__ == "__main__":
