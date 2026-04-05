@@ -226,8 +226,9 @@ def build_stat_strip(df: pd.DataFrame) -> str:
 
 def _panel_header(pill: str, title: str, callouts: list[tuple[str, str]], warm: bool = False) -> str:
     pill_cls = "pill warm" if warm else "pill"
+    co_num_cls = "warm" if warm else ""
     cards = "".join(
-        f"<div class='co' role='note'><span class='co-num {"warm" if warm else ""}'>{num}</span> {txt}</div>"
+        f"<div class='co' role='note'><span class='co-num {co_num_cls}'>{num}</span> {txt}</div>"
         for num, txt in callouts
     )
     return (
