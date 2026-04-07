@@ -122,9 +122,7 @@ export default function App() {
               <h1 className="text-lg font-semibold tracking-tight text-white">
                 MCAM Keyword Generator
               </h1>
-              <p className="text-xs text-slate-400">
-                Mills College Art Museum · AAT Pipeline
-              </p>
+              <p className="text-xs text-slate-400">Art & Architecture Thesaurus Pipeline</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -189,7 +187,7 @@ export default function App() {
 
       <footer className="border-t border-slate-800/60 bg-slate-950/60 py-4 text-center text-xs text-slate-500">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          Mills College Art Museum · AAT keyword pipeline
+          AAT keyword pipeline
         </div>
       </footer>
     </div>

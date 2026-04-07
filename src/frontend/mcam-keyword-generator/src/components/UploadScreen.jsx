@@ -100,8 +100,8 @@ export default function UploadScreen({
       ) : null}
 
       <div className="flex min-w-0 flex-col gap-4 lg:col-span-7">
-        <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-stretch">
-          <div className="min-w-0 flex-1 overflow-hidden rounded-xl bg-slate-800 ring-1 ring-slate-700">
+        <div className="flex min-w-0 flex-col gap-4">
+          <div className="min-w-0 overflow-hidden rounded-xl bg-slate-800 ring-1 ring-slate-700">
             <div className="relative h-72 min-h-72 w-full min-w-0 bg-slate-900/70 sm:h-80 sm:min-h-80 lg:h-96 lg:min-h-96">
               {previewUrl ? (
                 <img
@@ -146,13 +146,11 @@ export default function UploadScreen({
           </div>
 
           {files.length > 0 ? (
-            <aside
-              className={`${infoCardClass} flex min-h-0 w-full flex-col self-stretch lg:w-52 lg:max-w-[13rem]`}
-            >
+            <div className={`${infoCardClass} flex min-h-0 w-full flex-col`}>
               <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
                 Queue ({files.length})
               </p>
-              <ul className="max-h-48 min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain lg:max-h-none">
+              <ul className="max-h-52 space-y-1 overflow-y-auto overscroll-contain sm:max-h-64">
                 {files.map((file, i) => {
                   const selected = i === previewIndex
                   return (
@@ -188,7 +186,7 @@ export default function UploadScreen({
                   )
                 })}
               </ul>
-            </aside>
+            </div>
           ) : null}
         </div>
       </div>
