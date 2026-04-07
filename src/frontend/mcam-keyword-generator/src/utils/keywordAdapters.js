@@ -42,14 +42,26 @@ export function isKeywordIncluded(k) {
   return k.selected !== false
 }
 
+/** Removes the last extension (e.g. `.png`) for export labels. */
+export function stripFileExtension(name) {
+  if (name == null) return ''
+  const s = String(name).trim()
+  if (!s) return ''
+  const base = s.replace(/\.[^.]+$/, '')
+  return base || s
+}
+
 export function buildCombinedExportText(results) {
   return results
-    .map((r, i) => {
+    .map((r) => {
+      const raw = r.file?.name
+      const name =
+        raw != null && raw !== '' ? stripFileExtension(raw) : 'unknown'
       if (r.type === 'error') {
-        return `Image ${i + 1}: ${r.file.name}\n[Error] ${r.error}`
+        return `${name}\n[Error] ${r.error}`
       }
       const line = r.keywords.filter(isKeywordIncluded).map((k) => k.text).join(', ')
-      return `Image ${i + 1}: ${line || '(no keywords selected)'}`
+      return `${name}: ${line || '(no keywords selected)'}`
     })
     .join('\n\n')
 }

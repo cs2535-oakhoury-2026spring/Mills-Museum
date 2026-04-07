@@ -2,7 +2,7 @@ import { motion } from 'motion/react'
 import { useState } from 'react'
 import { ZoomIn, Copy, Check, FileText, Search } from 'lucide-react'
 import { ImageModal } from './ImageModal'
-import { isKeywordIncluded } from '../../utils/keywordAdapters'
+import { isKeywordIncluded, stripFileExtension } from '../../utils/keywordAdapters'
 import { reviewActionButtonSm } from '../../utils/reviewActionStyles'
 
 export function ResultDisplay({
@@ -41,7 +41,8 @@ export function ResultDisplay({
 
   const handleExportText = () => {
     const lines = included.map((k) => `  - ${k.text} (${k.confidence}%)`)
-    const text = `${fileName}
+    const label = stripFileExtension(fileName) || 'keywords'
+    const text = `${label}
 
 Keywords (${included.length}):
 ${lines.join('\n')}
@@ -53,8 +54,7 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    const base = fileName.replace(/\.[^.]+$/, '') || 'keywords'
-    a.download = `${base}_keywords.txt`
+    a.download = `${label}_keywords.txt`
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -166,42 +166,40 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
                       title={keyword.text}
                       initial={false}
                       animate={{ opacity: 1, scale: 1 }}
-                      className={`flex min-w-0 cursor-pointer flex-col gap-0.5 rounded-md px-1.5 py-1 text-left transition-colors ${
+                      className={`flex min-w-0 cursor-pointer items-start gap-1.5 rounded-md px-2 py-1.5 text-left transition-colors ${
                         on
                           ? 'bg-amber-500 text-slate-900 ring-1 ring-amber-600 hover:bg-amber-400'
                           : 'bg-slate-700/90 text-slate-300 ring-1 ring-slate-600 saturate-[0.88] hover:bg-slate-600 hover:saturate-100'
                       }`}
                     >
-                      <div className="flex min-w-0 items-start gap-1.5">
-                        <input
-                          id={inputId}
-                          type="checkbox"
-                          checked={on}
-                          onChange={() => toggleKeyword(globalIndex)}
-                          className={`mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-300 ${
-                            on
-                              ? 'border-slate-900/50 bg-amber-50 accent-amber-800'
-                              : 'border-slate-400 bg-slate-800 accent-amber-600'
+                      <input
+                        id={inputId}
+                        type="checkbox"
+                        checked={on}
+                        onChange={() => toggleKeyword(globalIndex)}
+                        className={`mt-1 h-4 w-4 shrink-0 cursor-pointer rounded border-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-300 ${
+                          on
+                            ? 'border-slate-900/50 bg-amber-50 accent-amber-800'
+                            : 'border-slate-400 bg-slate-800 accent-amber-600'
+                        }`}
+                        aria-label={
+                          on
+                            ? `${keyword.text}, included for export. Uncheck to exclude.`
+                            : `${keyword.text}, excluded from export. Check to include.`
+                        }
+                      />
+                      <span className="min-w-0 flex-1 leading-snug">
+                        <span
+                          className={`line-clamp-2 break-words text-base font-medium leading-snug sm:text-lg ${
+                            on ? 'text-slate-900' : 'text-slate-200'
                           }`}
-                          aria-label={
-                            on
-                              ? `${keyword.text}, included for export. Uncheck to exclude.`
-                              : `${keyword.text}, excluded from export. Check to include.`
-                          }
-                        />
-                        <span className="min-w-0 flex-1 leading-snug">
-                          <span
-                            className={`line-clamp-2 break-words text-sm font-medium ${
-                              on ? 'text-slate-900' : 'text-slate-200'
-                            }`}
-                            title={keyword.text}
-                          >
-                            {keyword.text}
-                          </span>
+                          title={keyword.text}
+                        >
+                          {keyword.text}
                         </span>
-                      </div>
+                      </span>
                       <span
-                        className={`pl-[22px] text-xs font-normal tabular-nums leading-none ${
+                        className={`shrink-0 self-start pt-1 text-right text-sm font-medium tabular-nums leading-none ${
                           on ? 'text-slate-800' : 'text-slate-300'
                         }`}
                       >

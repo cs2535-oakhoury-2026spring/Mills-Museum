@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import logoUrl from '../../../../media/inverted color logo.png'
 import UploadScreen from './components/UploadScreen'
 import ReviewView from './components/ReviewView'
 import { ProcessingDisplay } from './components/figma/ProcessingDisplay'
@@ -112,9 +113,11 @@ export default function App() {
       <header className="sticky top-0 z-30 border-b border-slate-800/60 bg-slate-950/80 backdrop-blur-lg">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 text-sm font-bold text-white shadow-lg shadow-amber-500/20">
-              M
-            </div>
+            <img
+              src={logoUrl}
+              alt="Mills College Art Museum"
+              className="h-9 w-auto max-w-[200px] object-contain object-left"
+            />
             <div>
               <h1 className="text-lg font-semibold tracking-tight text-white">
                 MCAM Keyword Generator
@@ -138,19 +141,21 @@ export default function App() {
       </header>
 
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-8 sm:px-6 sm:py-10">
-        <div className="mb-8 text-center">
-          <h2 className="text-xl font-medium text-slate-50 sm:text-2xl">
-            MCAM Art Keyword Generator
-          </h2>
-          <p className="mcam-subtitle mx-auto mt-2 max-w-2xl text-slate-400">
-            Upload artwork images to automatically generate AAT keywords for
-            cataloging.
-          </p>
-        </div>
+        {phase === 'upload' ? (
+          <div className="mb-8 text-center">
+            <h2 className="text-xl font-medium text-slate-50 sm:text-2xl">
+              MCAM Art Keyword Generator
+            </h2>
+            <p className="mcam-subtitle mx-auto mt-2 max-w-2xl text-slate-400">
+              Upload artwork images to automatically generate AAT keywords for
+              cataloging.
+            </p>
+          </div>
+        ) : null}
 
         <div className="flex w-full min-w-0 flex-1 justify-center">
           {phase === 'upload' ? (
-            <div className="mx-auto w-full max-w-md min-w-0 shrink-0">
+            <div className="mx-auto w-full min-w-0 max-w-6xl shrink-0">
               <UploadScreen
                 onRequestProcess={handleRequestProcess}
                 errorMessage={batchError}

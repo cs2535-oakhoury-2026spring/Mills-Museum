@@ -1,5 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 
+const API_HINT =
+  import.meta.env.VITE_API_URL || 'http://localhost:8000'
+
 export default function UploadScreen({
   onRequestProcess,
   errorMessage,
@@ -39,6 +42,13 @@ export default function UploadScreen({
     return () => URL.revokeObjectURL(url)
   }, [files, previewIndex])
 
+  useEffect(() => {
+    setPreviewIndex((pi) => {
+      if (files.length === 0) return 0
+      return Math.min(pi, files.length - 1)
+    })
+  }, [files])
+
   const handleFiles = (incoming) => {
     const arr = Array.from(incoming || [])
     setFiles(arr)
@@ -50,6 +60,10 @@ export default function UploadScreen({
     e.preventDefault()
     setIsDragging(false)
     handleFiles(e.dataTransfer.files)
+  }
+
+  const removeFileAt = (idx) => {
+    setFiles((prev) => prev.filter((_, i) => i !== idx))
   }
 
   const handleProcess = async () => {
@@ -64,10 +78,13 @@ export default function UploadScreen({
 
   const showNav = files.length > 1
 
+  const infoCardClass =
+    'rounded-xl border border-slate-700/80 bg-slate-800/40 p-4 ring-1 ring-slate-700/50'
+
   return (
-    <div className="flex w-full min-w-0 flex-col gap-6 overflow-x-hidden">
+    <div className="grid w-full min-w-0 grid-cols-1 gap-6 overflow-x-hidden lg:grid-cols-12 lg:gap-8">
       {errorMessage ? (
-        <div className="flex min-w-0 items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300 shadow-lg shadow-red-500/5">
+        <div className="flex min-w-0 items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300 shadow-lg shadow-red-500/5 lg:col-span-12">
           <svg className="h-5 w-5 shrink-0 text-red-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
           </svg>
@@ -82,107 +99,181 @@ export default function UploadScreen({
         </div>
       ) : null}
 
-      <div className="flex min-w-0 flex-col gap-5">
-        {/* Fixed-size preview; image is positioned so intrinsic width cannot expand layout */}
-        <div className="w-full min-w-0 overflow-hidden rounded-xl bg-slate-800 ring-1 ring-slate-700">
-          <div className="relative h-80 min-h-80 w-full min-w-0 bg-slate-900/70">
-            {previewUrl ? (
-              <img
-                src={previewUrl}
-                alt={`Preview ${previewIndex + 1} of ${files.length}`}
-                className="absolute inset-0 box-border h-full w-full object-contain object-center"
-              />
-            ) : (
-              <span className="absolute inset-0 flex items-center justify-center text-xs text-slate-500">
-                No image selected
-              </span>
-            )}
+      <div className="flex min-w-0 flex-col gap-4 lg:col-span-7">
+        <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-stretch">
+          <div className="min-w-0 flex-1 overflow-hidden rounded-xl bg-slate-800 ring-1 ring-slate-700">
+            <div className="relative h-72 min-h-72 w-full min-w-0 bg-slate-900/70 sm:h-80 sm:min-h-80 lg:h-96 lg:min-h-96">
+              {previewUrl ? (
+                <img
+                  src={previewUrl}
+                  alt={`Preview ${previewIndex + 1} of ${files.length}`}
+                  className="absolute inset-0 box-border h-full w-full object-contain object-center"
+                />
+              ) : (
+                <span className="absolute inset-0 flex items-center justify-center text-xs text-slate-500">
+                  No image selected
+                </span>
+              )}
+            </div>
+
+            {showNav ? (
+              <div className="flex items-center justify-center gap-3 border-t border-slate-700 py-2.5">
+                <button
+                  type="button"
+                  onClick={() => setPreviewIndex((i) => Math.max(0, i - 1))}
+                  disabled={previewIndex <= 0}
+                  className="rounded-md bg-slate-700 px-2.5 py-1 text-xs text-slate-200 disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Previous file preview"
+                >
+                  ←
+                </button>
+                <span className="min-w-[5rem] text-center text-xs text-slate-400">
+                  {previewIndex + 1} / {files.length}
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPreviewIndex((i) => Math.min(files.length - 1, i + 1))
+                  }
+                  disabled={previewIndex >= files.length - 1}
+                  className="rounded-md bg-slate-700 px-2.5 py-1 text-xs text-slate-200 disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Next file preview"
+                >
+                  →
+                </button>
+              </div>
+            ) : null}
           </div>
 
-          {showNav ? (
-            <div className="flex items-center justify-center gap-3 border-t border-slate-700 py-2.5">
-              <button
-                type="button"
-                onClick={() => setPreviewIndex((i) => Math.max(0, i - 1))}
-                disabled={previewIndex <= 0}
-                className="rounded-md bg-slate-700 px-2.5 py-1 text-xs text-slate-200 disabled:cursor-not-allowed disabled:opacity-40"
-                aria-label="Previous file preview"
-              >
-                ←
-              </button>
-              <span className="min-w-[5rem] text-center text-xs text-slate-400">
-                {previewIndex + 1} / {files.length}
-              </span>
-              <button
-                type="button"
-                onClick={() =>
-                  setPreviewIndex((i) => Math.min(files.length - 1, i + 1))
-                }
-                disabled={previewIndex >= files.length - 1}
-                className="rounded-md bg-slate-700 px-2.5 py-1 text-xs text-slate-200 disabled:cursor-not-allowed disabled:opacity-40"
-                aria-label="Next file preview"
-              >
-                →
-              </button>
-            </div>
+          {files.length > 0 ? (
+            <aside
+              className={`${infoCardClass} flex min-h-0 w-full flex-col self-stretch lg:w-52 lg:max-w-[13rem]`}
+            >
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                Queue ({files.length})
+              </p>
+              <ul className="max-h-48 min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain lg:max-h-none">
+                {files.map((file, i) => {
+                  const selected = i === previewIndex
+                  return (
+                    <li key={`${file.name}-${i}`} className="min-w-0">
+                      <div
+                        className={`flex items-center gap-1 rounded-lg py-1 pl-2 pr-1 transition-colors ${
+                          selected
+                            ? 'bg-amber-500/15 ring-1 ring-amber-500/40'
+                            : 'bg-slate-900/40 hover:bg-slate-900/70'
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setPreviewIndex(i)}
+                          className="min-w-0 flex-1 truncate text-left text-xs font-medium text-slate-200"
+                          title={file.name}
+                        >
+                          {file.name}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            removeFileAt(i)
+                          }}
+                          className="shrink-0 rounded-md px-1.5 py-1 text-xs text-slate-400 transition-colors hover:bg-red-500/20 hover:text-red-300"
+                          aria-label={`Remove ${file.name}`}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            </aside>
           ) : null}
+        </div>
+      </div>
+
+      <div className="flex min-w-0 flex-col gap-5 lg:col-span-5">
+        <div className={infoCardClass}>
+          <h3 className="text-sm font-semibold text-slate-100">
+            How it works
+          </h3>
+          <ol className="mt-2 list-decimal space-y-1.5 pl-4 text-xs text-slate-400">
+            <li>Add one or more artwork images (JPEG, PNG, WebP, and other common formats).</li>
+            <li>Run generation; the model proposes AAT-style keywords with confidence scores.</li>
+            <li>Review each image, toggle keywords, then copy or export for cataloging.</li>
+          </ol>
+          <p className="mt-3 text-[11px] leading-relaxed text-slate-500">
+            Prediction calls go to{' '}
+            <code className="rounded bg-slate-900/80 px-1 py-0.5 text-slate-300">
+              {API_HINT}
+            </code>
+            . Ensure your Google Colab Notebook is running before you start.
+          </p>
+        </div>
+
+        <div className={infoCardClass}>
+          <h3 className="text-sm font-semibold text-slate-100">Tips</h3>
+          <ul className="mt-2 list-disc space-y-1.5 pl-4 text-xs text-slate-400">
+            <li>Treat suggestions as a starting point—curate before using in records.</li>
+            <li>Large batches are processed one image at a time; progress appears after you start.</li>
+            <li>If every image fails, check that the API URL is reachable and the server is up.</li>
+          </ul>
         </div>
 
         <div className="flex w-full min-w-0 flex-col gap-3">
-        <div className="flex min-w-0 flex-col gap-2">
-          <label className="text-xs font-medium text-slate-200" htmlFor="kw-count">
-            # Keywords to generate
-          </label>
-          <div className="flex items-center gap-3">
-            <input
-              id="kw-count"
-              type="range"
-              min={MIN_KEYWORD_COUNT}
-              max={MAX_KEYWORD_COUNT}
-              step={1}
-              value={keywordCount}
-              onChange={(e) => {
-                const next = clampKeywordCount(e.target.value)
-                setKeywordCount(next)
-                setKeywordCountText(String(next))
-              }}
-              className="h-2 w-full cursor-pointer accent-amber-500"
-              aria-label="Keyword count"
-            />
-            <input
-              type="number"
-              min={MIN_KEYWORD_COUNT}
-              max={MAX_KEYWORD_COUNT}
-              step={1}
-              value={keywordCountText}
-              onChange={(e) => {
-                const nextText = e.target.value
-                setKeywordCountText(nextText)
-
-                // Allow the field to be temporarily empty while editing.
-                if (nextText === '') return
-
-                const parsed = parseInt(nextText, 10)
-                if (Number.isNaN(parsed)) return
-
-                const next = clampKeywordCount(parsed)
-                setKeywordCount(next)
-                // Normalize out-of-range values immediately.
-                if (String(next) !== nextText) {
+          <div className="flex min-w-0 flex-col gap-2">
+            <label className="text-xs font-medium text-slate-200" htmlFor="kw-count">
+              # Keywords to generate
+            </label>
+            <div className="flex items-center gap-3">
+              <input
+                id="kw-count"
+                type="range"
+                min={MIN_KEYWORD_COUNT}
+                max={MAX_KEYWORD_COUNT}
+                step={1}
+                value={keywordCount}
+                onChange={(e) => {
+                  const next = clampKeywordCount(e.target.value)
+                  setKeywordCount(next)
                   setKeywordCountText(String(next))
-                }
-              }}
-              onBlur={() => {
-                if (keywordCountText === '') {
-                  setKeywordCountText(String(keywordCount))
-                }
-              }}
-              className="w-20 rounded-md bg-slate-900/80 py-2 px-2 text-sm text-slate-100 ring-1 ring-slate-600 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/70"
-              aria-label="Keyword count (number)"
-            />
+                }}
+                className="h-2 w-full cursor-pointer accent-amber-500"
+                aria-label="Keyword count"
+              />
+              <input
+                type="number"
+                min={MIN_KEYWORD_COUNT}
+                max={MAX_KEYWORD_COUNT}
+                step={1}
+                value={keywordCountText}
+                onChange={(e) => {
+                  const nextText = e.target.value
+                  setKeywordCountText(nextText)
+
+                  if (nextText === '') return
+
+                  const parsed = parseInt(nextText, 10)
+                  if (Number.isNaN(parsed)) return
+
+                  const next = clampKeywordCount(parsed)
+                  setKeywordCount(next)
+                  if (String(next) !== nextText) {
+                    setKeywordCountText(String(next))
+                  }
+                }}
+                onBlur={() => {
+                  if (keywordCountText === '') {
+                    setKeywordCountText(String(keywordCount))
+                  }
+                }}
+                className="w-20 rounded-md bg-slate-900/80 py-2 px-2 text-sm text-slate-100 ring-1 ring-slate-600 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/70"
+                aria-label="Keyword count (number)"
+              />
+            </div>
+            <p className="text-[11px] text-slate-500">Limits: 1–50 keywords</p>
           </div>
-          <p className="text-[11px] text-slate-500">Limits: 1–50 keywords</p>
-        </div>
 
           <div
             tabIndex={0}
