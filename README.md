@@ -58,64 +58,10 @@ The pipeline is primarily designed around using Google Colab, as their rather ge
 
 ```mermaid
 flowchart TD
-    subgraph Frontend["React Frontend (mcam-keyword-generator)"]
-        A["UploadScreen\nDrop images + set keyword count (1–50)"]
-        B["App.jsx\nphase: 'processing'"]
-        C["POST /predict\nFormData: file + term_count\nHeader: ngrok-skip-browser-warning"]
-        D["ReviewView\nDisplay results per image"]
-        E["User toggles keywords"]
-        F["Export: clipboard / .txt"]
-    end
-
-    subgraph Backend["FastAPI Backend (mcam_with_api.ipynb — Google Colab)"]
-        G["Receive image + term_count"]
-        H["PIL: open + convert to RGB"]
-        I["Pack query\n{image: img, text: ''}"]
-
-        subgraph Embedding["Embedding Step"]
-            J["Qwen3-VL-Embedding-2B\nGenerate image feature vector"]
-            K["L2 Normalize embedding"]
-        end
-
-        subgraph Retrieval["Retrieval Step"]
-            L["ChromaDB\nmax_marginal_relevance_search\nfetch_k = term_count × 4\nlambda_mult = 0.7"]
-        end
-
-        subgraph Reranking["Reranking Step"]
-            M["Qwen3-VL-Reranker-2B\nScore each candidate:\n(image, AAT term + scope note)"]
-            N["Sort by score descending\nConvert to % confidence"]
-        end
-
-        O["Return JSON\n{keywords: [{label, score}, ...]}"]
-    end
-
-    subgraph DataLayer["Data Layer"]
-        P[("ChromaDB\n44,225 AAT term embeddings\nterm_label + term_id + scope_note")]
-        Q[("HuggingFace\nKeeganC/aat-museum-subset\nAAT terms dataset")]
-        R[("HuggingFace Hub\nModel weights\nQwen3-VL-Embedding-2B\nQwen3-VL-Reranker-2B")]
-    end
-
-    subgraph Infra["Infrastructure"]
-        S["ngrok tunnel\nColab → public HTTPS URL"]
-    end
-
-    A -->|"user selects files + count"| B
-    B --> C
-    C -->|"via ngrok"| G
-
-    G --> H --> I --> J --> K
-    K -->|"query vector"| L
-    L -->|"top candidates"| M
-    M --> N --> O
-
-    O -->|"JSON response"| D
-    D --> E --> F
-
-    Q -->|"pre-computed once per session"| P
-    R -->|"loaded at startup"| J
-    R -->|"loaded at startup"| M
-    P <-->|"cosine similarity (HNSW)"| L
-
-    S <-->|"tunnels"| C
-    S <-->|"tunnels"| Backend
+    A["User uploads image\n+ sets keyword count"] --> B["Image sent to backend"]
+    B --> C["Image converted\nto a vector embedding"]
+    C --> D["Search AAT database\nfor similar terms"]
+    D --> E["Rerank & score\ntop matches"]
+    E --> F["Keywords returned\nto frontend"]
+    F --> G["User reviews,\ntoggles, and exports"]
 ```
