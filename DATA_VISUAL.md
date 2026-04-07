@@ -2,7 +2,7 @@
 
 This is the analysis and exhibit layer of the Mills Museum project. It takes the AAT dataset, digs through it, and presents findings as an interactive local website.
 
-Still being developed. Expect rough edges.
+
 
 ## What it does
 
@@ -18,7 +18,7 @@ hierarchy, facet, record_type, parent_id, parent_term,
 sort_order, term_id, root_id
 ```
 
-A new dataset is planned. When it lands, the exhibit should just work — point the parquet path and relaunch.
+
 
 ## Running locally
 
