@@ -54,3 +54,68 @@ Our pipeline is implemented in the Python programming language, due to the famil
 For our machine learning models, we chose Qwen3VL Embedder and Reranker models. These models have the benefit of being open-weight, which allows us to easily make any necessary adjustments easily, as well as being (close to) State of The Art in this space. Qwen as a whole is a rising force in the AI model space, with their propensity to release a wide range of variants and sizes for their models (as well as the previously mentioned open weights) making them particularly popular among local hosting and finetuning circles. The Embedder model generates embeddings based on the image, associating them with specific concepts; in our case, we fit the embedding model onto a filtered version of the AAT terms so that the embeddings it would generate are AAT terms. The Reranker model takes the embeddings generated and re-ranks them, which allows us to further refine the output and increase the quality of results.
 
 The pipeline is primarily designed around using Google Colab, as their rather generous educational benefits package has given us access to far more powerful hardware than we would otherwise have access too, and in general the platform allows for workflows to be very easily shared and used. We also believe that Colab's pay-as-you-go style of pricing will be very attractive to small museums, as it means that they only pay for what they use and they don't need to worry about the various costs of maintaining infrastructure or hardware themselves.
+
+
+```mermaid
+flowchart TD
+    subgraph Frontend["React Frontend (mcam-keyword-generator)"]
+        A["UploadScreen\nDrop images + set keyword count (1–50)"]
+        B["App.jsx\nphase: 'processing'"]
+        C["POST /predict\nFormData: file + term_count\nHeader: ngrok-skip-browser-warning"]
+        D["ReviewView\nDisplay results per image"]
+        E["User toggles keywords"]
+        F["Export: clipboard / .txt"]
+    end
+
+    subgraph Backend["FastAPI Backend (mcam_with_api.ipynb — Google Colab)"]
+        G["Receive image + term_count"]
+        H["PIL: open + convert to RGB"]
+        I["Pack query\n{image: img, text: ''}"]
+
+        subgraph Embedding["Embedding Step"]
+            J["Qwen3-VL-Embedding-2B\nGenerate image feature vector"]
+            K["L2 Normalize embedding"]
+        end
+
+        subgraph Retrieval["Retrieval Step"]
+            L["ChromaDB\nmax_marginal_relevance_search\nfetch_k = term_count × 4\nlambda_mult = 0.7"]
+        end
+
+        subgraph Reranking["Reranking Step"]
+            M["Qwen3-VL-Reranker-2B\nScore each candidate:\n(image, AAT term + scope note)"]
+            N["Sort by score descending\nConvert to % confidence"]
+        end
+
+        O["Return JSON\n{keywords: [{label, score}, ...]}"]
+    end
+
+    subgraph DataLayer["Data Layer"]
+        P[("ChromaDB\n44,225 AAT term embeddings\nterm_label + term_id + scope_note")]
+        Q[("HuggingFace\nKeeganC/aat-museum-subset\nAAT terms dataset")]
+        R[("HuggingFace Hub\nModel weights\nQwen3-VL-Embedding-2B\nQwen3-VL-Reranker-2B")]
+    end
+
+    subgraph Infra["Infrastructure"]
+        S["ngrok tunnel\nColab → public HTTPS URL"]
+    end
+
+    A -->|"user selects files + count"| B
+    B --> C
+    C -->|"via ngrok"| G
+
+    G --> H --> I --> J --> K
+    K -->|"query vector"| L
+    L -->|"top candidates"| M
+    M --> N --> O
+
+    O -->|"JSON response"| D
+    D --> E --> F
+
+    Q -->|"pre-computed once per session"| P
+    R -->|"loaded at startup"| J
+    R -->|"loaded at startup"| M
+    P <-->|"cosine similarity (HNSW)"| L
+
+    S <-->|"tunnels"| C
+    S <-->|"tunnels"| Backend
+```
