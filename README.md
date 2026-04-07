@@ -58,10 +58,15 @@ The pipeline is primarily designed around using Google Colab, as their rather ge
 
 ```mermaid
 flowchart TD
-    A["User uploads image\n+ sets keyword count"] --> B["Image sent to backend"]
-    B --> C["Image converted\nto a vector embedding"]
-    C --> D["Search AAT database\nfor similar terms"]
-    D --> E["Rerank & score\ntop matches"]
-    E --> F["Keywords returned\nto frontend"]
-    F --> G["User reviews,\ntoggles, and exports"]
+    subgraph Setup["One-time Setup (on server start)"]
+        A["AAT Thesaurus\n44k art terms"] -->|"Qwen3-VL-Embedding-2B"| B[("ChromaDB\n44k pre-computed embeddings")]
+    end
+
+    subgraph Request["Per Request (via ngrok → Google Colab)"]
+        C["User uploads image\n+ keyword count"] -->|"Qwen3-VL-Embedding-2B"| D["Image vector embedding"]
+        D -->|"MMR search\n4× candidates for diversity"| B
+        B --> E["Candidate AAT terms"]
+        E -->|"Qwen3-VL-Reranker-2B\nscores image + term pairs"| F["Ranked keywords\nwith confidence %"]
+        F --> G["React frontend\nuser reviews & exports"]
+    end
 ```
