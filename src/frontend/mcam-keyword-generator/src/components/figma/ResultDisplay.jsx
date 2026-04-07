@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { ZoomIn, Copy, Check, FileText, Search } from 'lucide-react'
 import { ImageModal } from './ImageModal'
 import { isKeywordIncluded, stripFileExtension } from '../../utils/keywordAdapters'
+import { getConfidenceBadgeStyle } from '../../utils/confidenceBadgeStyle'
 import { reviewActionButtonSm } from '../../utils/reviewActionStyles'
 
 export function ResultDisplay({
@@ -66,15 +67,15 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mx-auto w-full max-w-sm min-w-0 rounded-xl bg-slate-800 p-4 ring-1 ring-slate-700 xl:mx-0 xl:max-w-none xl:sticky xl:top-4"
+            className="mx-auto w-full max-w-sm min-w-0 rounded-xl border-2 border-mcam-navy/20 bg-white p-4 shadow-sm xl:mx-0 xl:max-w-none xl:sticky xl:top-4"
           >
             <div className="mx-auto w-full max-w-sm min-w-0 overflow-hidden">
-              <div className="group relative h-56 min-h-56 w-full min-w-0 overflow-hidden rounded-lg bg-slate-900/70">
+              <div className="group relative h-56 min-h-56 w-full min-w-0 overflow-hidden rounded-lg border border-mcam-navy/15 bg-mcam-surface">
                 {imageSrc ? (
                   <img
                     src={imageSrc}
                     alt=""
-                    className="absolute left-1/2 top-1/2 max-h-full max-w-full -translate-x-1/2 -translate-y-1/2 object-contain"
+                    className="absolute inset-0 box-border h-full w-full max-h-full max-w-full object-contain object-center p-2"
                   />
                 ) : null}
                 <button
@@ -89,12 +90,12 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
               </div>
             </div>
             <p
-              className="mt-3 break-all text-center text-xs text-slate-300"
+              className="mt-3 break-all text-center text-xs text-mcam-navy"
               title={fileName}
             >
               {fileName}
             </p>
-            <p className="mt-2 text-center text-xs text-slate-400">
+            <p className="mt-2 text-center text-xs text-mcam-muted">
               {included.length} of {keywords.length} keywords included for export
             </p>
           </motion.div>
@@ -105,12 +106,12 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.05 }}
-            className="flex min-h-[280px] flex-col rounded-xl bg-slate-800 p-4 ring-1 ring-slate-700"
+            className="flex min-h-[280px] flex-col rounded-xl border-2 border-mcam-navy/20 bg-white p-4 shadow-sm"
           >
-            <div className="mb-3 flex flex-wrap items-start gap-3 border-b border-slate-700/80 pb-3">
+            <div className="mb-3 flex flex-wrap items-start gap-3 border-b-2 border-mcam-navy/15 pb-3">
               <div className="min-w-0 flex-1">
-                <h3 className="text-sm font-medium text-slate-100">Keywords</h3>
-                <p className="mt-0.5 text-xs text-slate-300">
+                <h3 className="text-sm font-medium text-mcam-navy">Keywords</h3>
+                <p className="mt-0.5 text-xs text-mcam-muted">
                   Use the checkbox or click a tile. Long labels show fully on hover. Unchecked keywords are greyed and omitted from copy and exports.
                 </p>
               </div>
@@ -141,7 +142,7 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
             </label>
             <div className="relative mb-3">
               <Search
-                className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400"
+                className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-mcam-muted"
                 aria-hidden
               />
               <input
@@ -150,12 +151,12 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
                 placeholder="Filter list…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-md bg-slate-900/80 py-2 pl-8 pr-3 text-sm text-slate-100 ring-1 ring-slate-600 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/70"
+                className="w-full rounded-md border-2 border-mcam-navy/20 bg-white py-2 pl-8 pr-3 text-sm text-mcam-navy placeholder:text-mcam-muted focus:border-mcam-blue focus:outline-none"
               />
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto rounded-md bg-slate-900/40 p-2 ring-1 ring-slate-700/50">
-              <div className="grid grid-cols-2 gap-1.5 content-start">
+            <div className="min-h-0 flex-1 overflow-y-auto rounded-md border border-mcam-navy/15 bg-mcam-surface p-2.5">
+              <div className="grid grid-cols-2 gap-2 content-start">
                 {filteredWithIndex.map(({ k: keyword, i: globalIndex }) => {
                   const on = isKeywordIncluded(keyword)
                   const inputId = `kw-include-${globalIndex}`
@@ -166,10 +167,10 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
                       title={keyword.text}
                       initial={false}
                       animate={{ opacity: 1, scale: 1 }}
-                      className={`flex min-w-0 cursor-pointer items-start gap-1.5 rounded-md px-2 py-1.5 text-left transition-colors ${
+                      className={`inline-flex w-full min-w-0 cursor-pointer items-center gap-2 rounded-md border border-[#2f5a94]/60 bg-[#3b6db5] px-3 py-2 text-left text-xs font-semibold !text-white shadow-sm transition hover:brightness-105 focus-within:brightness-105 ${
                         on
-                          ? 'bg-amber-500 text-slate-900 ring-1 ring-amber-600 hover:bg-amber-400'
-                          : 'bg-slate-700/90 text-slate-300 ring-1 ring-slate-600 saturate-[0.88] hover:bg-slate-600 hover:saturate-100'
+                          ? 'ring-2 ring-white/90 ring-offset-2 ring-offset-mcam-surface'
+                          : ''
                       }`}
                     >
                       <input
@@ -177,31 +178,33 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
                         type="checkbox"
                         checked={on}
                         onChange={() => toggleKeyword(globalIndex)}
-                        className={`mt-1 h-4 w-4 shrink-0 cursor-pointer rounded border-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-300 ${
-                          on
-                            ? 'border-slate-900/50 bg-amber-50 accent-amber-800'
-                            : 'border-slate-400 bg-slate-800 accent-amber-600'
-                        }`}
+                        className="peer sr-only"
                         aria-label={
                           on
                             ? `${keyword.text}, included for export. Uncheck to exclude.`
                             : `${keyword.text}, excluded from export. Check to include.`
                         }
                       />
+                      <span
+                        aria-hidden
+                        className="mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded border-2 border-white/95 bg-white/92 shadow-md peer-checked:border-[#93c5fd]/70 peer-checked:bg-[#2f5a94]/95 peer-focus-visible:ring-1 peer-focus-visible:ring-white/50 peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-[#3b6db5] [&_svg]:opacity-0 peer-checked:[&_svg]:opacity-100"
+                      >
+                        <Check
+                          className="h-3 w-3 text-white"
+                          strokeWidth={2.5}
+                        />
+                      </span>
                       <span className="min-w-0 flex-1 leading-snug">
                         <span
-                          className={`line-clamp-2 break-words text-base font-medium leading-snug sm:text-lg ${
-                            on ? 'text-slate-900' : 'text-slate-200'
-                          }`}
+                          className="line-clamp-2 break-words text-sm font-semibold leading-snug text-white sm:text-base"
                           title={keyword.text}
                         >
                           {keyword.text}
                         </span>
                       </span>
                       <span
-                        className={`shrink-0 self-start pt-1 text-right text-sm font-medium tabular-nums leading-none ${
-                          on ? 'text-slate-800' : 'text-slate-300'
-                        }`}
+                        className="inline-flex min-w-[2.75rem] shrink-0 items-center justify-center self-center rounded-md border border-solid px-1.5 py-0.5 text-[11px] font-bold tabular-nums leading-none shadow-sm"
+                        style={getConfidenceBadgeStyle(keyword.confidence)}
                       >
                         {keyword.confidence}%
                       </span>

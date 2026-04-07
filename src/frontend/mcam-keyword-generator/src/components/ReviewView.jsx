@@ -25,29 +25,29 @@ export default function ReviewView({
   return (
     <div className="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-6">
       {/* Top Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-800/60 bg-slate-900/40 px-6 py-4 shadow-lg">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border-2 border-mcam-navy/20 bg-white px-6 py-4 shadow-sm">
         {/* Navigation */}
         <div className="flex items-center gap-3">
           <button
             onClick={() => setResultIndex((i) => Math.max(0, i - 1))}
             disabled={!canGoPrev}
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-800 text-slate-100 ring-1 ring-slate-600 transition-all hover:bg-slate-700 hover:text-white hover:ring-slate-500 disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex h-10 w-10 items-center justify-center rounded-xl border-2 border-mcam-navy/20 bg-mcam-surface text-mcam-navy transition-all hover:border-mcam-blue hover:bg-mcam-blue-light hover:text-mcam-blue disabled:cursor-not-allowed disabled:border-mcam-navy/10 disabled:bg-white disabled:text-mcam-muted"
             aria-label="Previous image"
           >
             <ChevronLeft size={18} />
           </button>
           <div className="text-center">
-            <span className="text-lg font-bold text-white">
+            <span className="text-lg font-bold text-mcam-navy">
               {results.length === 0 ? '—' : `${resultIndex + 1}`}
             </span>
-            <span className="text-lg text-slate-400"> / {results.length}</span>
+            <span className="text-lg text-mcam-muted"> / {results.length}</span>
           </div>
           <button
             onClick={() =>
               setResultIndex((i) => Math.min(results.length - 1, i + 1))
             }
             disabled={!canGoNext}
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-800 text-slate-100 ring-1 ring-slate-600 transition-all hover:bg-slate-700 hover:text-white hover:ring-slate-500 disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex h-10 w-10 items-center justify-center rounded-xl border-2 border-mcam-navy/20 bg-mcam-surface text-mcam-navy transition-all hover:border-mcam-blue hover:bg-mcam-blue-light hover:text-mcam-blue disabled:cursor-not-allowed disabled:border-mcam-navy/10 disabled:bg-white disabled:text-mcam-muted"
             aria-label="Next image"
           >
             <ChevronRight size={18} />
@@ -56,7 +56,7 @@ export default function ReviewView({
 
         {errorCount > 0 ? (
           <div className="flex items-center gap-3">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500/15 px-3 py-1 text-xs font-medium text-red-200 ring-1 ring-red-400/40">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1 text-xs font-medium text-red-800 ring-1 ring-red-200">
               {errorCount} failed
             </span>
           </div>
@@ -86,23 +86,25 @@ export default function ReviewView({
 
       {/* Result Content */}
       {current?.type === 'error' ? (
-        <div className="flex flex-col items-center gap-4 rounded-2xl border border-red-500/20 bg-red-500/5 px-8 py-12 text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/10 text-red-400">
+        <div className="flex flex-col items-center gap-4 rounded-2xl border border-red-200 bg-red-50/80 px-8 py-12 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-100 text-red-600">
             <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
             </svg>
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-red-200">Could not process image</h3>
-            <p className="mt-1 text-sm font-medium text-red-100">{current.file.name}</p>
-            <p className="mt-2 text-sm text-red-100/95">{current.error}</p>
+            <h3 className="text-lg font-semibold text-red-900">Could not process image</h3>
+            <p className="mt-1 text-sm font-medium text-red-800">{current.file.name}</p>
+            <p className="mt-2 text-sm text-red-800">{current.error}</p>
           </div>
           {current.previewUrl && (
-            <img
-              src={current.previewUrl}
-              alt="Failed"
-              className="mt-2 h-40 w-40 rounded-xl border border-red-500/20 object-contain"
-            />
+            <div className="relative mt-2 h-40 w-40 overflow-hidden rounded-xl border border-red-200 bg-red-50/50">
+              <img
+                src={current.previewUrl}
+                alt="Failed"
+                className="absolute inset-0 box-border h-full w-full max-h-full max-w-full object-contain object-center p-2"
+              />
+            </div>
           )}
         </div>
       ) : current?.type === 'success' ? (

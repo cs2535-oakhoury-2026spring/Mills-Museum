@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "vite",
+    "dev:3001": "vite --port 3001",
     "build": "vite build",
     "mock": "node mock-backend/server.js"
   },

@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import logoUrl from '../../../../media/inverted color logo.png'
+import logoUrl from '../../../../media/logo.png'
 import UploadScreen from './components/UploadScreen'
 import ReviewView from './components/ReviewView'
 import { ProcessingDisplay } from './components/figma/ProcessingDisplay'
@@ -109,8 +109,8 @@ export default function App() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-100">
-      <header className="sticky top-0 z-30 border-b border-slate-800/60 bg-slate-950/80 backdrop-blur-lg">
+    <div className="mcam-app flex min-h-screen flex-col bg-gradient-to-br from-slate-50 via-white to-mcam-surface text-mcam-navy">
+      <header className="sticky top-0 z-30 border-b-2 border-mcam-navy/15 bg-white/95 backdrop-blur-lg">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
           <div className="flex items-center gap-3">
             <img
@@ -119,15 +119,18 @@ export default function App() {
               className="h-9 w-auto max-w-[200px] object-contain object-left"
             />
             <div>
-              <h1 className="text-lg font-semibold tracking-tight text-white">
+              <h1 className="text-lg font-semibold tracking-tight text-mcam-navy">
                 MCAM Keyword Generator
               </h1>
-              <p className="text-xs text-slate-400">Art & Architecture Thesaurus Pipeline</p>
+              <p className="text-xs text-mcam-muted">Art & Architecture Thesaurus Pipeline</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400 ring-1 ring-emerald-500/20">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#2f62a8]/50 bg-[#d8e4f5] px-3 py-1 text-xs font-semibold text-[#1e2a44]">
+              <span
+                className="h-2 w-2 shrink-0 rounded-full bg-[#2f62a8] shadow-sm ring-2 ring-white"
+                aria-hidden
+              />
               {phase === 'upload'
                 ? 'Ready'
                 : phase === 'processing'
@@ -141,10 +144,10 @@ export default function App() {
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-8 sm:px-6 sm:py-10">
         {phase === 'upload' ? (
           <div className="mb-8 text-center">
-            <h2 className="text-xl font-medium text-slate-50 sm:text-2xl">
+            <h2 className="text-xl font-semibold text-mcam-navy sm:text-2xl">
               MCAM Art Keyword Generator
             </h2>
-            <p className="mcam-subtitle mx-auto mt-2 max-w-2xl text-slate-400">
+            <p className="mcam-subtitle mx-auto mt-2 max-w-2xl text-mcam-muted">
               Upload artwork images to automatically generate AAT keywords for
               cataloging.
             </p>
@@ -185,7 +188,7 @@ export default function App() {
         </div>
       </main>
 
-      <footer className="border-t border-slate-800/60 bg-slate-950/60 py-4 text-center text-xs text-slate-500">
+      <footer className="border-t-2 border-mcam-navy/15 bg-white/90 py-4 text-center text-xs text-mcam-muted">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           AAT keyword pipeline
         </div>

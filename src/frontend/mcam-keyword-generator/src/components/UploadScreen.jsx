@@ -79,20 +79,20 @@ export default function UploadScreen({
   const showNav = files.length > 1
 
   const infoCardClass =
-    'rounded-xl border border-slate-700/80 bg-slate-800/40 p-4 ring-1 ring-slate-700/50'
+    'rounded-xl border-2 border-mcam-navy/20 bg-white p-4 shadow-sm'
 
   return (
-    <div className="grid w-full min-w-0 grid-cols-1 gap-6 overflow-x-hidden lg:grid-cols-12 lg:gap-8">
+    <div className="grid w-full min-w-0 grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
       {errorMessage ? (
-        <div className="flex min-w-0 items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300 shadow-lg shadow-red-500/5 lg:col-span-12">
-          <svg className="h-5 w-5 shrink-0 text-red-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+        <div className="flex min-w-0 items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 shadow-sm lg:col-span-12">
+          <svg className="h-5 w-5 shrink-0 text-red-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
           </svg>
           <span className="min-w-0 flex-1 font-medium">{errorMessage}</span>
           <button
             type="button"
             onClick={onDismissError}
-            className="shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium text-red-300 transition-colors hover:bg-red-500/20"
+            className="shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium text-red-700 transition-colors hover:bg-red-100"
           >
             Dismiss
           </button>
@@ -101,33 +101,33 @@ export default function UploadScreen({
 
       <div className="flex min-w-0 flex-col gap-4 lg:col-span-7">
         <div className="flex min-w-0 flex-col gap-4">
-          <div className="min-w-0 overflow-hidden rounded-xl bg-slate-800 ring-1 ring-slate-700">
-            <div className="relative h-72 min-h-72 w-full min-w-0 bg-slate-900/70 sm:h-80 sm:min-h-80 lg:h-96 lg:min-h-96">
+          <div className="min-w-0 rounded-xl border-2 border-mcam-navy/25 bg-white shadow-sm">
+            <div className="relative h-72 min-h-72 w-full min-w-0 overflow-hidden bg-mcam-surface sm:h-80 sm:min-h-80 lg:h-96 lg:min-h-96">
               {previewUrl ? (
                 <img
                   src={previewUrl}
                   alt={`Preview ${previewIndex + 1} of ${files.length}`}
-                  className="absolute inset-0 box-border h-full w-full object-contain object-center"
+                  className="absolute inset-0 box-border h-full w-full max-h-full max-w-full object-contain object-center p-2"
                 />
               ) : (
-                <span className="absolute inset-0 flex items-center justify-center text-xs text-slate-500">
+                <span className="absolute inset-0 flex items-center justify-center text-xs text-mcam-muted">
                   No image selected
                 </span>
               )}
             </div>
 
             {showNav ? (
-              <div className="flex items-center justify-center gap-3 border-t border-slate-700 py-2.5">
+              <div className="flex items-center justify-center gap-3 border-t border-mcam-navy/10 py-2.5">
                 <button
                   type="button"
                   onClick={() => setPreviewIndex((i) => Math.max(0, i - 1))}
                   disabled={previewIndex <= 0}
-                  className="rounded-md bg-slate-700 px-2.5 py-1 text-xs text-slate-200 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="rounded-md border border-mcam-navy/20 bg-mcam-surface px-2.5 py-1 text-xs text-mcam-navy disabled:cursor-not-allowed disabled:border-mcam-navy/10 disabled:bg-white disabled:text-mcam-muted"
                   aria-label="Previous file preview"
                 >
                   ←
                 </button>
-                <span className="min-w-[5rem] text-center text-xs text-slate-400">
+                <span className="min-w-[5rem] text-center text-xs text-mcam-muted">
                   {previewIndex + 1} / {files.length}
                 </span>
                 <button
@@ -136,7 +136,7 @@ export default function UploadScreen({
                     setPreviewIndex((i) => Math.min(files.length - 1, i + 1))
                   }
                   disabled={previewIndex >= files.length - 1}
-                  className="rounded-md bg-slate-700 px-2.5 py-1 text-xs text-slate-200 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="rounded-md border border-mcam-navy/20 bg-mcam-surface px-2.5 py-1 text-xs text-mcam-navy disabled:cursor-not-allowed disabled:border-mcam-navy/10 disabled:bg-white disabled:text-mcam-muted"
                   aria-label="Next file preview"
                 >
                   →
@@ -147,7 +147,7 @@ export default function UploadScreen({
 
           {files.length > 0 ? (
             <div className={`${infoCardClass} flex min-h-0 w-full flex-col`}>
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-mcam-muted">
                 Queue ({files.length})
               </p>
               <ul className="max-h-52 space-y-1 overflow-y-auto overscroll-contain sm:max-h-64">
@@ -158,14 +158,14 @@ export default function UploadScreen({
                       <div
                         className={`flex items-center gap-1 rounded-lg py-1 pl-2 pr-1 transition-colors ${
                           selected
-                            ? 'bg-amber-500/15 ring-1 ring-amber-500/40'
-                            : 'bg-slate-900/40 hover:bg-slate-900/70'
+                            ? 'border border-mcam-blue/50 bg-mcam-blue-light'
+                            : 'border border-transparent bg-mcam-surface hover:border-mcam-navy/15'
                         }`}
                       >
                         <button
                           type="button"
                           onClick={() => setPreviewIndex(i)}
-                          className="min-w-0 flex-1 truncate text-left text-xs font-medium text-slate-200"
+                          className="min-w-0 flex-1 truncate text-left text-xs font-medium text-mcam-navy"
                           title={file.name}
                         >
                           {file.name}
@@ -176,7 +176,7 @@ export default function UploadScreen({
                             e.stopPropagation()
                             removeFileAt(i)
                           }}
-                          className="shrink-0 rounded-md px-1.5 py-1 text-xs text-slate-400 transition-colors hover:bg-red-500/20 hover:text-red-300"
+                          className="shrink-0 rounded-md px-1.5 py-1 text-xs text-mcam-muted transition-colors hover:bg-red-50 hover:text-red-700"
                           aria-label={`Remove ${file.name}`}
                         >
                           ×
@@ -193,17 +193,17 @@ export default function UploadScreen({
 
       <div className="flex min-w-0 flex-col gap-5 lg:col-span-5">
         <div className={infoCardClass}>
-          <h3 className="text-sm font-semibold text-slate-100">
+          <h3 className="text-sm font-semibold text-mcam-navy">
             How it works
           </h3>
-          <ol className="mt-2 list-decimal space-y-1.5 pl-4 text-xs text-slate-400">
+          <ol className="mt-2 list-decimal space-y-1.5 pl-4 text-xs text-mcam-muted">
             <li>Add one or more artwork images (JPEG, PNG, WebP, and other common formats).</li>
             <li>Run generation; the model proposes AAT-style keywords with confidence scores.</li>
             <li>Review each image, toggle keywords, then copy or export for cataloging.</li>
           </ol>
-          <p className="mt-3 text-[11px] leading-relaxed text-slate-500">
+          <p className="mt-3 text-[11px] leading-relaxed text-mcam-muted">
             Prediction calls go to{' '}
-            <code className="rounded bg-slate-900/80 px-1 py-0.5 text-slate-300">
+            <code className="rounded border border-mcam-navy/20 bg-mcam-surface px-1 py-0.5 text-mcam-navy">
               {API_HINT}
             </code>
             . Ensure your Google Colab Notebook is running before you start.
@@ -211,8 +211,8 @@ export default function UploadScreen({
         </div>
 
         <div className={infoCardClass}>
-          <h3 className="text-sm font-semibold text-slate-100">Tips</h3>
-          <ul className="mt-2 list-disc space-y-1.5 pl-4 text-xs text-slate-400">
+          <h3 className="text-sm font-semibold text-mcam-navy">Tips</h3>
+          <ul className="mt-2 list-disc space-y-1.5 pl-4 text-xs text-mcam-muted">
             <li>Treat suggestions as a starting point—curate before using in records.</li>
             <li>Large batches are processed one image at a time; progress appears after you start.</li>
             <li>If every image fails, check that the API URL is reachable and the server is up.</li>
@@ -221,7 +221,7 @@ export default function UploadScreen({
 
         <div className="flex w-full min-w-0 flex-col gap-3">
           <div className="flex min-w-0 flex-col gap-2">
-            <label className="text-xs font-medium text-slate-200" htmlFor="kw-count">
+            <label className="text-xs font-medium text-mcam-navy" htmlFor="kw-count">
               # Keywords to generate
             </label>
             <div className="flex items-center gap-3">
@@ -237,7 +237,7 @@ export default function UploadScreen({
                   setKeywordCount(next)
                   setKeywordCountText(String(next))
                 }}
-                className="h-2 w-full cursor-pointer accent-amber-500"
+                className="h-2 w-full cursor-pointer accent-mcam-navy"
                 aria-label="Keyword count"
               />
               <input
@@ -266,11 +266,11 @@ export default function UploadScreen({
                     setKeywordCountText(String(keywordCount))
                   }
                 }}
-                className="w-20 rounded-md bg-slate-900/80 py-2 px-2 text-sm text-slate-100 ring-1 ring-slate-600 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/70"
+                className="w-20 rounded-md border-2 border-mcam-navy/25 bg-white py-2 px-2 text-sm text-mcam-navy placeholder:text-mcam-muted focus:border-mcam-blue focus:outline-none"
                 aria-label="Keyword count (number)"
               />
             </div>
-            <p className="text-[11px] text-slate-500">Limits: 1–50 keywords</p>
+            <p className="text-[11px] text-mcam-muted">Limits: 1–50 keywords</p>
           </div>
 
           <div
@@ -278,8 +278,8 @@ export default function UploadScreen({
             role="button"
             className={`group flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed px-3 py-3 transition-all duration-200 ${
               isDragging
-                ? 'border-amber-500 bg-amber-500/10 shadow-lg shadow-amber-500/10'
-                : 'border-slate-700 bg-slate-900/30 hover:border-amber-500/50 hover:bg-slate-900/50'
+                ? 'border-mcam-blue bg-mcam-blue-light shadow-md'
+                : 'border-mcam-navy/30 bg-white hover:border-mcam-blue hover:bg-mcam-blue-light/80'
             }`}
             onClick={() => inputRef.current?.click?.()}
             onKeyDown={(e) => {
@@ -310,20 +310,20 @@ export default function UploadScreen({
               className="hidden"
               onChange={(e) => handleFiles(e.target.files)}
             />
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-slate-800 text-slate-400 ring-1 ring-slate-700 transition-all group-hover:bg-amber-500/10 group-hover:text-amber-400 group-hover:ring-amber-500/30">
+            <div className="flex h-8 w-8 items-center justify-center rounded-md border border-mcam-navy/15 bg-mcam-surface text-mcam-muted transition-all group-hover:border-mcam-blue/40 group-hover:bg-mcam-blue-light group-hover:text-mcam-blue">
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
               </svg>
             </div>
             <div className="text-center">
-              <p className="text-xs font-semibold text-slate-200">
+              <p className="text-xs font-semibold text-mcam-navy">
                 Drop images here
               </p>
-              <p className="mt-0.5 text-[11px] text-slate-500">
+              <p className="mt-0.5 text-[11px] text-mcam-muted">
                 or click · multiple OK
               </p>
             </div>
-            <span className="rounded-md bg-slate-800 px-2.5 py-1 text-[11px] font-medium text-slate-300 ring-1 ring-slate-700 transition-all group-hover:bg-amber-500/20 group-hover:text-amber-300 group-hover:ring-amber-500/30">
+            <span className="rounded-md border border-mcam-navy/15 bg-mcam-surface px-2.5 py-1 text-[11px] font-medium text-mcam-navy transition-all group-hover:border-mcam-blue/50 group-hover:bg-mcam-blue-light group-hover:text-mcam-blue">
               Choose files
             </span>
           </div>
@@ -332,7 +332,7 @@ export default function UploadScreen({
             type="button"
             onClick={handleProcess}
             disabled={files.length === 0 || busy}
-            className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:from-amber-400 hover:to-orange-400 hover:shadow-amber-500/40 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
+            className="w-full rounded-xl border-2 border-[#1e2a44]/35 bg-[#1e2a44] px-4 py-3 text-sm font-semibold !text-white shadow-md transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:border-[#c5cedd] disabled:bg-[#e8ecf2] disabled:!text-[#3d4d66] disabled:shadow-none"
           >
             {busy ? (
               <span className="flex items-center justify-center gap-2">

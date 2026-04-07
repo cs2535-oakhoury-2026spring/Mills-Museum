@@ -42,7 +42,7 @@ export function ImageModal({ isOpen, onClose, imageSrc, fileName }) {
               <button
                 type="button"
                 onClick={onClose}
-                className="absolute -right-4 -top-4 z-10 rounded-full bg-slate-800 p-2 text-slate-300 transition-colors hover:bg-slate-700 hover:text-white"
+                className="absolute -right-4 -top-4 z-10 rounded-full border-2 border-white/80 bg-mcam-navy p-2 text-white shadow-lg transition-colors hover:brightness-110"
                 aria-label="Close enlarged image"
               >
                 <X className="h-5 w-5" />
@@ -51,11 +51,11 @@ export function ImageModal({ isOpen, onClose, imageSrc, fileName }) {
               <img
                 src={imageSrc}
                 alt={fileName || 'Enlarged view'}
-                className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain"
+                className="box-border mx-auto block h-auto max-h-[90vh] w-auto max-w-[90vw] rounded-lg object-contain object-center"
               />
 
               {fileName ? (
-                <div className="mt-4 text-center text-sm text-slate-400">{fileName}</div>
+                <div className="mt-4 text-center text-sm text-white/90">{fileName}</div>
               ) : null}
             </motion.div>
           </div>
