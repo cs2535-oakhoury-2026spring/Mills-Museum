@@ -11,7 +11,6 @@ htmlcov/
 .idea/
 .git/
 
-dist/
 build/
 *.egg-info/
 
