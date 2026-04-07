@@ -11,5 +11,8 @@ export default defineConfig({
   plugins: [tailwindcss(), react()],
   server: {
     fs: { allow: [repoRoot] },
+    proxy: {
+      '/predict': 'https://stilliform-celine-plaintively.ngrok-free.dev',
+    },
   },
 })
