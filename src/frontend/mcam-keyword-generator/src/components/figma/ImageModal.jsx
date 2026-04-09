@@ -2,6 +2,13 @@ import { motion, AnimatePresence } from 'motion/react'
 import { X } from 'lucide-react'
 import { useEffect } from 'react'
 
+/**
+ * Full-screen image modal (controlled).
+ *
+ * `isOpen` and `onClose` are owned by the parent so the modal has no hidden state.
+ * This component focuses on UX details: escape-to-close, click-backdrop-to-close,
+ * scroll locking, and mount/unmount animations.
+ */
 export function ImageModal({ isOpen, onClose, imageSrc, fileName }) {
   useEffect(() => {
     const handleEscape = (e) => {
@@ -9,7 +16,9 @@ export function ImageModal({ isOpen, onClose, imageSrc, fileName }) {
     }
 
     if (isOpen) {
+      // Keep keyboard close behavior local to the modal and clean it up reliably.
       document.addEventListener('keydown', handleEscape)
+      // Prevent background scroll while the overlay is open.
       document.body.style.overflow = 'hidden'
     }
 
@@ -28,6 +37,7 @@ export function ImageModal({ isOpen, onClose, imageSrc, fileName }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
+            // Backdrop sits behind the dialog content and closes on click.
             className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm"
           />
 
@@ -51,6 +61,7 @@ export function ImageModal({ isOpen, onClose, imageSrc, fileName }) {
               <img
                 src={imageSrc}
                 alt={fileName || 'Enlarged view'}
+                // Constrain to viewport while preserving aspect ratio.
                 className="box-border mx-auto block h-auto max-h-[90vh] w-auto max-w-[90vw] rounded-lg object-contain object-center"
               />
 

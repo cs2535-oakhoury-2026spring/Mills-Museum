@@ -1,3 +1,10 @@
+/**
+ * Frontend adapter helpers.
+ *
+ * The backend can evolve independently from the UI. These functions normalize
+ * backend-ish shapes into small, UI-friendly primitives so components can stay
+ * focused on rendering and interaction.
+ */
 function stripKeywordDefinition(rawText) {
   if (rawText == null) return ''
   const text = String(rawText).trim()
@@ -23,6 +30,26 @@ function stripKeywordDefinition(rawText) {
   return text
 }
 
+/**
+ * Accession number convention:
+ * - start from the "title" (usually the filename without extension)
+ * - if the title contains an underscore, ignore everything after the first `_`
+ *
+ * Examples:
+ * - "ABC123_front" -> "ABC123"
+ * - "M-001" -> "M-001"
+ */
+export function getAccessionNumberFromTitle(title) {
+  const base = stripFileExtension(title)
+  if (!base) return ''
+  const head = base.split('_', 1)[0].trim()
+  return head || base
+}
+
+/**
+ * Maps raw API keywords (label/text + score) into the UI keyword model.
+ * `selected` defaults true so results start in an "included" state.
+ */
 export function mapApiKeyword(kw) {
   const rawScore = kw.score
   const score =
@@ -37,7 +64,10 @@ export function mapApiKeyword(kw) {
   }
 }
 
-/** Keyword is included in exports when `selected` is not explicitly false. */
+/**
+ * Keyword is included in exports when `selected` is not explicitly false.
+ * This makes inclusion the default, even if older data lacks a `selected` field.
+ */
 export function isKeywordIncluded(k) {
   return k.selected !== false
 }
@@ -51,6 +81,17 @@ export function stripFileExtension(name) {
   return base || s
 }
 
+function csvEscape(value) {
+  const s = value == null ? '' : String(value)
+  // Quote when needed (commas, quotes, newlines). Double any internal quotes.
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`
+  return s
+}
+
+/**
+ * Builds a human-readable, batch-level export text for all results.
+ * Success entries include only the currently-included keywords.
+ */
 export function buildCombinedExportText(results) {
   return results
     .map((r) => {
@@ -66,6 +107,31 @@ export function buildCombinedExportText(results) {
     .join('\n\n')
 }
 
+/**
+ * CSV export: 2 columns, one keyword per row.
+ * - column 1: accession number (derived from title/filename)
+ * - column 2: keyword text
+ *
+ * Errors are skipped (no keyword rows).
+ */
+export function buildCombinedExportCsv(results) {
+  const header = 'accession_number,keyword'
+  const rows = results.flatMap((r) => {
+    if (r.type !== 'success') return []
+    const title = r.file?.name ?? ''
+    const accession = getAccessionNumberFromTitle(title) || 'unknown'
+    return r.keywords
+      .filter(isKeywordIncluded)
+      .map((k) => `${csvEscape(accession)},${csvEscape(k.text)}`)
+  })
+
+  return [header, ...rows].join('\n')
+}
+
+/**
+ * Browser download helper for small text exports.
+ * Uses an object URL + temporary anchor click.
+ */
 export function downloadTextFile(filename, text) {
   const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
   const url = URL.createObjectURL(blob)

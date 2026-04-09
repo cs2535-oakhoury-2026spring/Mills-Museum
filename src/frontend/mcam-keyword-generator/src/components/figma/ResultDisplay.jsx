@@ -2,10 +2,24 @@ import { motion } from 'motion/react'
 import { useState } from 'react'
 import { ZoomIn, Copy, Check, FileText, Search } from 'lucide-react'
 import { ImageModal } from './ImageModal'
-import { isKeywordIncluded, stripFileExtension } from '../../utils/keywordAdapters'
+import {
+  getAccessionNumberFromTitle,
+  isKeywordIncluded,
+  stripFileExtension,
+  downloadTextFile,
+} from '../../utils/keywordAdapters'
 import { getConfidenceBadgeStyle } from '../../utils/confidenceBadgeStyle'
 import { reviewActionButtonSm } from '../../utils/reviewActionStyles'
 
+/**
+ * Per-image review panel.
+ *
+ * Keeps "real" review data (keywords + selection) controlled by the parent via
+ * `keywords` + `onKeywordsChange`, while owning only transient UI state:
+ * - copy feedback
+ * - modal open/close
+ * - search query
+ */
 export function ResultDisplay({
   imageSrc,
   keywords,
@@ -16,8 +30,11 @@ export function ResultDisplay({
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
 
+  // A single definition of "included" keeps UI + copy/export behavior aligned.
   const included = keywords.filter(isKeywordIncluded)
 
+  // Keep the original keyword index while filtering, so toggles update the correct
+  // element in the source array (not the filtered slice).
   const filteredWithIndex = keywords
     .map((k, i) => ({ k, i }))
     .filter(({ k }) => {
@@ -29,10 +46,12 @@ export function ResultDisplay({
     const text = included.map((k) => k.text).join(', ')
     navigator.clipboard.writeText(text)
     setCopied(true)
+    // Small UX touch: show "Copied" briefly without complicating global state.
     setTimeout(() => setCopied(false), 2000)
   }
 
   const toggleKeyword = (index) => {
+    // Immutable update makes React state changes predictable.
     onKeywordsChange(
       keywords.map((k, i) =>
         i === index ? { ...k, selected: !isKeywordIncluded(k) } : k,
@@ -51,13 +70,21 @@ ${lines.join('\n')}
 Comma-separated: ${included.map((k) => k.text).join(', ')}
 `
 
-    const blob = new Blob([text], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${label}_keywords.txt`
-    a.click()
-    URL.revokeObjectURL(url)
+    // Per-image export uses the same browser download pattern as the batch export.
+    downloadTextFile(`${label}_keywords.txt`, text)
+  }
+
+  const handleExportCsv = () => {
+    const accession = getAccessionNumberFromTitle(fileName) || 'unknown'
+    const header = 'accession_number,keyword'
+    const rows = included.map((k) => {
+      const a = String(accession).replace(/"/g, '""')
+      const kw = String(k.text).replace(/"/g, '""')
+      const accCell = /[",\n\r]/.test(a) ? `"${a}"` : a
+      const kwCell = /[",\n\r]/.test(kw) ? `"${kw}"` : kw
+      return `${accCell},${kwCell}`
+    })
+    downloadTextFile(`${accession}_keywords.csv`, [header, ...rows].join('\n'))
   }
 
   return (
@@ -133,6 +160,14 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
                 >
                   <FileText className="h-3.5 w-3.5" />
                   TXT
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExportCsv}
+                  disabled={included.length === 0}
+                  className={reviewActionButtonSm}
+                >
+                  CSV
                 </button>
               </div>
             </div>
@@ -217,6 +252,7 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
         </div>
       </div>
 
+      {/* Controlled modal: ResultDisplay owns only the open/close UI state */}
       <ImageModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

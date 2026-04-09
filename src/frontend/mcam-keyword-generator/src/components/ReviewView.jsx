@@ -1,8 +1,21 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { ResultDisplay } from './figma/ResultDisplay'
-import { buildCombinedExportText, downloadTextFile } from '../utils/keywordAdapters'
+import {
+  buildCombinedExportCsv,
+  buildCombinedExportText,
+  downloadTextFile,
+} from '../utils/keywordAdapters'
 import { reviewActionButtonLg } from '../utils/reviewActionStyles'
 
+/**
+ * Batch review "shell" for results.
+ *
+ * This component intentionally keeps no internal state for the review data:
+ * the parent owns `results` and `resultIndex`. Here we focus on:
+ * - navigation between results
+ * - batch actions (export all, upload new)
+ * - routing to either an error panel or the per-image `ResultDisplay`
+ */
 export default function ReviewView({
   results,
   resultIndex,
@@ -10,16 +23,25 @@ export default function ReviewView({
   onUploadNew,
   onKeywordsChange,
 }) {
+  // Current item is derived from props so the view stays in sync with parent state.
   const current = results[resultIndex]
 
   const handleExportAll = () => {
+    // Export uses shared adapters so UI + exports follow the same inclusion rules.
     const text = buildCombinedExportText(results)
     downloadTextFile('mcam_keywords_export.txt', text)
   }
 
+  const handleExportCsv = () => {
+    const csv = buildCombinedExportCsv(results)
+    downloadTextFile('mcam_keywords_export.csv', csv)
+  }
+
+  // Clamp navigation via derived booleans and guarded index updates.
   const canGoPrev = resultIndex > 0
   const canGoNext = resultIndex < results.length - 1
 
+  // Surface partial failures without blocking the rest of the batch.
   const errorCount = results.filter((r) => r.type === 'error').length
 
   return (
@@ -76,6 +98,13 @@ export default function ReviewView({
           </button>
           <button
             type="button"
+            onClick={handleExportCsv}
+            className={reviewActionButtonLg}
+          >
+            CSV
+          </button>
+          <button
+            type="button"
             onClick={onUploadNew}
             className={reviewActionButtonLg}
           >
@@ -86,6 +115,8 @@ export default function ReviewView({
 
       {/* Result Content */}
       {current?.type === 'error' ? (
+        // Errors are displayed inline so users can still navigate the batch
+        // and export other successful results.
         <div className="flex flex-col items-center gap-4 rounded-2xl border border-red-200 bg-red-50/80 px-8 py-12 text-center">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-100 text-red-600">
             <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -108,6 +139,7 @@ export default function ReviewView({
           )}
         </div>
       ) : current?.type === 'success' ? (
+        // Delegate detailed per-image keyword interactions to ResultDisplay.
         <ResultDisplay
           keywords={current.keywords}
           imageSrc={current.previewUrl}
