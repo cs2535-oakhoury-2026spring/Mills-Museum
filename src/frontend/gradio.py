@@ -6,6 +6,7 @@ from pathlib import Path
 import tempfile
 
 import gradio as gr
+import numpy as np
 import torch
 from PIL import Image
 
@@ -19,7 +20,9 @@ from src.frontend.keyword_feedback import (
 
 
 DEFAULT_KEYWORD_COUNT = 10
-DEFAULT_CANDIDATE_POOL_SIZE = 40
+DEFAULT_CANDIDATE_POOL_SIZE = 80
+MMR_LAMBDA = 0.7
+MIN_SIMILARITY_THRESHOLD = 0.15
 REPO_DEMO_IMAGES: list[str] = []
 EXPORT_DIR: str | None = None
 
@@ -162,31 +165,82 @@ def build_action_feedback(message, kind="info"):
     return f"<div class='feedback-card {kind}-card'>{message}</div>"
 
 
-def build_art_query(image):
-    return {"image": image, "text": ""}
+def build_art_query(image, title="", medium=""):
+    text_parts = []
+    if title and title.strip():
+        text_parts.append(f"Title: {title.strip()}")
+    if medium and medium.strip():
+        text_parts.append(f"Medium: {medium.strip()}")
+    text = ". ".join(text_parts) if text_parts else ""
+    query = {"image": image}
+    if text:
+        query["text"] = text
+    return query
+
+
+def _mmr_select(
+    query_embedding: np.ndarray,
+    candidate_embeddings: np.ndarray,
+    k: int,
+    lambda_mult: float = MMR_LAMBDA,
+) -> list[int]:
+    """Maximal Marginal Relevance selection for diversity."""
+    if len(candidate_embeddings) == 0:
+        return []
+    query_sim = candidate_embeddings @ query_embedding
+    selected: list[int] = []
+    remaining = list(range(len(candidate_embeddings)))
+
+    for _ in range(min(k, len(remaining))):
+        if not remaining:
+            break
+        if not selected:
+            best = int(np.argmax(query_sim[remaining]))
+            selected.append(remaining.pop(best))
+            continue
+        selected_embs = candidate_embeddings[selected]
+        best_idx = -1
+        best_score = -float("inf")
+        for i, idx in enumerate(remaining):
+            relevance = float(query_sim[idx])
+            redundancy = float(np.max(candidate_embeddings[idx] @ selected_embs.T))
+            mmr_score = lambda_mult * relevance - (1 - lambda_mult) * redundancy
+            if mmr_score > best_score:
+                best_score = mmr_score
+                best_idx = i
+        if best_idx >= 0:
+            selected.append(remaining.pop(best_idx))
+    return selected
 
 
 def generate_ranked_candidates(
     image,
     target_count=DEFAULT_KEYWORD_COUNT,
     candidate_pool_size=DEFAULT_CANDIDATE_POOL_SIZE,
+    title="",
+    medium="",
 ):
     embedding_model, reranking_model, collection = get_backend_runtime()
 
-    art_query = build_art_query(image)
+    art_query = build_art_query(image, title=title, medium=medium)
     query_input = [art_query]
 
     image_features = embedding_model.process(query_input)
     image_features = torch.nn.functional.normalize(image_features, p=2, dim=1)
+    query_embedding_list = image_features.cpu().float().tolist()
+    query_np = np.array(query_embedding_list[0], dtype=np.float32)
 
+    fetch_k = max(candidate_pool_size, target_count) * 3
     results = collection.query(
-        query_embeddings=image_features.cpu().float().tolist(),
-        n_results=max(target_count, candidate_pool_size),
+        query_embeddings=query_embedding_list,
+        n_results=fetch_k,
+        include=["documents", "metadatas", "embeddings", "distances"],
     )
 
     labels = []
     docs = []
     term_ids = []
+    embeddings_list = []
 
     if results.get("documents"):
         documents = results["documents"][0]
@@ -194,18 +248,46 @@ def generate_ranked_candidates(
         metadata_list = raw_metadatas[0] if raw_metadatas else [{} for _ in documents]
         if len(metadata_list) < len(documents):
             metadata_list = metadata_list + [{} for _ in range(len(documents) - len(metadata_list))]
-        for document, metadata in zip(documents, metadata_list):
+        raw_distances = (results.get("distances") or [[]])[0]
+        raw_embeddings = (results.get("embeddings") or [[]])[0]
+
+        for i, (document, metadata) in enumerate(zip(documents, metadata_list)):
+            if i < len(raw_distances):
+                cosine_dist = raw_distances[i]
+                similarity = 1.0 - cosine_dist
+                if similarity < MIN_SIMILARITY_THRESHOLD:
+                    continue
             docs.append({"text": document})
             labels.append(metadata.get("term_label", document))
             term_ids.append(metadata.get("term_id"))
+            if i < len(raw_embeddings):
+                embeddings_list.append(raw_embeddings[i])
 
     if not docs:
         return []
 
+    # MMR diversity selection
+    mmr_k = max(candidate_pool_size, target_count)
+    if embeddings_list and len(embeddings_list) == len(docs):
+        candidate_embs = np.array(embeddings_list, dtype=np.float32)
+        norms = np.linalg.norm(candidate_embs, axis=1, keepdims=True)
+        norms = np.where(norms == 0, 1, norms)
+        candidate_embs = candidate_embs / norms
+        query_norm = query_np / (np.linalg.norm(query_np) or 1.0)
+        selected_indices = _mmr_select(query_norm, candidate_embs, mmr_k)
+    else:
+        selected_indices = list(range(min(mmr_k, len(docs))))
+
+    docs = [docs[i] for i in selected_indices]
+    labels = [labels[i] for i in selected_indices]
+    term_ids = [term_ids[i] for i in selected_indices]
+
     rerank_inputs = {
         "instruction": (
-            "Retrieve Art & Architecture Thesaurus terms relevant to the given image. "
-            "Prefer specific, visually grounded labels."
+            "You are an art cataloguing assistant. Given an artwork image, "
+            "rank the following Art & Architecture Thesaurus (AAT) terms by how well each "
+            "describes the visual content, subject matter, style, technique, or materials "
+            "visible in the artwork. Prefer specific, visually grounded terms over generic ones."
         ),
         "query": art_query,
         "documents": docs,
@@ -252,7 +334,7 @@ def render_current_image(state, message=None, kind="info"):
     )
 
 
-def process_multiple_images(images, state):
+def process_multiple_images(images, title, medium, state):
     state = empty_app_state()
 
     if not images:
@@ -274,7 +356,9 @@ def process_multiple_images(images, state):
         image = None
         try:
             image = Image.open(image_path)
-            ranked_candidates = generate_ranked_candidates(image)
+            ranked_candidates = generate_ranked_candidates(
+                image, title=title or "", medium=medium or "",
+            )
             result = initialize_image_result(image, ranked_candidates, DEFAULT_KEYWORD_COUNT)
             result["status_message"] = (
                 "Suggestions ready. Uncheck any weak keywords, then regenerate only those slots."
@@ -714,6 +798,16 @@ with gr.Blocks(css=css, theme=theme, title="MCAM Art Keyword Generator", favicon
                         value=default_repo_files,
                     )
                 with gr.Column(scale=2):
+                    title_input = gr.Textbox(
+                        label="Artwork Title (optional)",
+                        placeholder="e.g. Starry Night, Untitled #4",
+                        value="",
+                    )
+                    medium_input = gr.Textbox(
+                        label="Medium / Materials (optional)",
+                        placeholder="e.g. oil on canvas, bronze sculpture",
+                        value="",
+                    )
                     process_btn = gr.Button("Generate Keywords", variant="primary", size="lg")
                     status_text = gr.Textbox(
                         label="Pipeline Status",
@@ -806,7 +900,7 @@ with gr.Blocks(css=css, theme=theme, title="MCAM Art Keyword Generator", favicon
 
     process_btn.click(
         fn=process_multiple_images,
-        inputs=[upload_input, state],
+        inputs=[upload_input, title_input, medium_input, state],
         outputs=[
             current_image_review,
             image_counter,

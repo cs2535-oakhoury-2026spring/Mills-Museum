@@ -1,26 +1,47 @@
-# Data Visualization — AAT Museum Subset
+# Data Visualization
 
-This is the analysis and exhibit layer of the Mills Museum project. It takes the AAT dataset, digs through it, and presents findings as an interactive local website.
+This repo has two visualization paths:
 
+- `src/frontend/data_story_exhibit.py` for the Gradio exhibit
+- `src/analysis/09_dashboard.py` for the standalone analysis dashboard
 
+Both expect an AAT-style parquet snapshot with this schema:
 
-## What it does
-
-The exhibit app loads a parquet snapshot of the AAT museum subset and builds interactive charts on the fly — facet distributions, century heatmaps, taxonomy depth, geographic coverage, keyword trends, and more. Everything renders in a single Gradio page at `localhost:7860`.
-
-## The dataset can change
-
-Right now this uses `KeeganC/aat-museum-subset` (44K rows, 12 columns). But the code is built around the schema, not the specific rows. If you swap in a different AAT subset with the same column structure, the charts and analysis will regenerate to match. The schema it expects:
-
-```
+```text
 subject_id, preferred_term, variant_terms, scope_note,
 hierarchy, facet, record_type, parent_id, parent_term,
 sort_order, term_id, root_id
 ```
 
+## Dataset setup
 
+Fetch the default dataset snapshot:
 
-## Running locally
+```bash
+python src/analysis/load_dataset.py
+```
+
+Fetch a different keyword collection:
+
+```bash
+python src/analysis/load_dataset.py --dataset your-hf-dataset --output src/analysis/data_cache/your_snapshot.parquet
+```
+
+## Standalone dashboard
+
+Build the dashboard with the default snapshot:
+
+```bash
+python src/analysis/09_dashboard.py
+```
+
+Build it from a different snapshot:
+
+```bash
+AAT_ANALYSIS_DATA_PATH=src/analysis/data_cache/your_snapshot.parquet python src/analysis/09_dashboard.py
+```
+
+## Gradio exhibit
 
 From the repo root:
 
@@ -28,20 +49,3 @@ From the repo root:
 pip install -r requirements.txt
 python -m src.frontend.data_story_exhibit
 ```
-
-Then open http://127.0.0.1:7860 in your browser.
-
-If the parquet file is missing, download it first:
-
-```bash
-python src/analysis/load_dataset.py
-```
-
-That pulls from HuggingFace and caches to `src/analysis/data_cache/`.
-
-## What needs to exist
-
-- `src/analysis/data_cache/aat_museum_subset.parquet`
-- `src/frontend/mills.jpg`
-
-The analysis scripts in `src/analysis/` (01 through 09) generated the static figures in `src/analysis/figures/`. You don't need to rerun them — the exhibit app builds its own charts live. But the scripts are there if you want to see how the numbers were found.

@@ -1,4 +1,5 @@
 """Mills Museum AAT Analysis — spring-themed scroll story dashboard."""
+import os
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -7,8 +8,13 @@ import re
 import base64
 from pathlib import Path
 
-FIGDIR = Path("src/analysis/figures")
-df = pd.read_parquet("src/analysis/data_cache/aat_museum_subset.parquet")
+ANALYSIS_DIR = Path(__file__).resolve().parent
+FIGDIR = ANALYSIS_DIR / "figures"
+DATA_PATH = Path(os.environ["AAT_ANALYSIS_DATA_PATH"]).expanduser() if "AAT_ANALYSIS_DATA_PATH" in os.environ else ANALYSIS_DIR / "data_cache" / "aat_museum_subset.parquet"
+OUTPUT_PATH = Path(os.environ["AAT_ANALYSIS_OUTPUT_PATH"]).expanduser() if "AAT_ANALYSIS_OUTPUT_PATH" in os.environ else FIGDIR / "dashboard.html"
+HERO_IMAGE_PATH = ANALYSIS_DIR.parent / "frontend" / "mills.jpg"
+
+df = pd.read_parquet(DATA_PATH)
 scope_notes = df[df["scope_note"].notna()]
 stopwords = {"and", "of", "the", "for", "in", "with", "a", "an", "to", "or", "by", "on", "at", "as", "is"}
 century_pattern = re.compile(r'(\d+)(?:st|nd|rd|th)\s+centur', re.IGNORECASE)
@@ -191,7 +197,7 @@ figs["scripts"].update_layout(**CHART_LAYOUT, height=400, showlegend=False)
 # ═══════════════════════════════════════════════════════
 
 # Embed mills.jpg as base64
-with open("src/frontend/mills.jpg", "rb") as f:
+with open(HERO_IMAGE_PATH, "rb") as f:
     mills_b64 = base64.b64encode(f.read()).decode()
 
 fig_init_js = ""
@@ -808,7 +814,8 @@ sects.forEach(s => navObs.observe(s));
 </body>
 </html>"""
 
-output_path = FIGDIR / "dashboard.html"
+output_path = OUTPUT_PATH
+output_path.parent.mkdir(parents=True, exist_ok=True)
 with open(output_path, "w") as f:
     f.write(html)
 
