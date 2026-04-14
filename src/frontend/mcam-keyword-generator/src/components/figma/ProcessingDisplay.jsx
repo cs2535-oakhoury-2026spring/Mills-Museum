@@ -1,9 +1,22 @@
+/**
+ * Full-width processing card: image preview, optional staggered keyword chips,
+ * and an animated progress bar. Used by `App` during batch inference (`keywords`
+ * is typically empty until a future flow needs post-100% reveal).
+ */
 import { motion } from 'motion/react'
 import { useEffect, useState } from 'react'
 
+/**
+ * @param {object} props
+ * @param {number} props.progress 0–100; drives bar width and “analyzing” vs “keywords” copy.
+ * @param {string} [props.imageSrc] Object URL or URL string for the current file preview.
+ * @param {Array<{ text: string, confidence: number }>} props.keywords Keyword chips revealed when `progress === 100`.
+ * @param {string} [props.statusLabel] e.g. “Processing image 2 of 5”.
+ */
 export function ProcessingDisplay({ progress, imageSrc, keywords, statusLabel }) {
   const [visibleKeywords, setVisibleKeywords] = useState([])
 
+  // While work is in flight, hide chips. At 100%, append keywords one-by-one for a short staggered entrance.
   useEffect(() => {
     if (progress < 100) {
       setVisibleKeywords([])
@@ -19,6 +32,7 @@ export function ProcessingDisplay({ progress, imageSrc, keywords, statusLabel })
 
   return (
     <div className="w-full max-w-4xl">
+      {/* Page title + optional batch position label from parent */}
       <div className="mb-6">
         <h2 className="text-sm font-semibold text-mcam-blue">Processing</h2>
         {statusLabel ? (
@@ -28,6 +42,7 @@ export function ProcessingDisplay({ progress, imageSrc, keywords, statusLabel })
 
       <div className="rounded-lg border-2 border-mcam-navy/20 bg-white p-8 shadow-sm">
         <div className="mb-6 flex flex-col gap-8 sm:flex-row">
+          {/* Current file thumbnail (object URL from parent while predicting) */}
           <div className="relative mx-auto h-64 w-full max-w-64 flex-shrink-0 overflow-hidden rounded border border-mcam-navy/15 bg-mcam-surface sm:mx-0">
             {imageSrc ? (
               <img
@@ -42,6 +57,7 @@ export function ProcessingDisplay({ progress, imageSrc, keywords, statusLabel })
             )}
           </div>
 
+          {/* Status copy + keyword chips (`visibleKeywords` staggers in at 100%) */}
           <div className="min-w-0 flex-1">
             {progress < 100 ? (
               <div className="mb-4">
@@ -59,6 +75,7 @@ export function ProcessingDisplay({ progress, imageSrc, keywords, statusLabel })
               </div>
             )}
 
+            {/* Motion-wrapped pills; empty while predicting or when parent passes no `keywords` */}
             <div className="flex flex-wrap gap-2">
               {visibleKeywords.map((keyword, index) => (
                 <motion.div
@@ -79,6 +96,7 @@ export function ProcessingDisplay({ progress, imageSrc, keywords, statusLabel })
           </div>
         </div>
 
+        {/* Overall batch fraction complete (each file advances `progress` in App) */}
         <div className="h-1.5 w-full overflow-hidden rounded-full border border-mcam-navy/10 bg-mcam-surface">
           <motion.div
             className="h-full bg-mcam-navy"
@@ -88,6 +106,7 @@ export function ProcessingDisplay({ progress, imageSrc, keywords, statusLabel })
           />
         </div>
 
+        {/* Numeric hint while still running; hides at 100% when keyword header shows counts */}
         {progress < 100 ? (
           <div className="mt-2 text-right text-xs text-mcam-muted">
             {Math.round(progress)}% complete

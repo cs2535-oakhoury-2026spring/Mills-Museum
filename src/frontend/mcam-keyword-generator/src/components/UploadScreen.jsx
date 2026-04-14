@@ -1,8 +1,20 @@
+/**
+ * Upload and queue UI: pick images, preview the active file, set keyword count,
+ * and start batch processing. Communicates with the parent only through
+ * `onRequestProcess(files, keywordCount)`; local `busy` guards double submits.
+ */
 import { useState, useRef, useEffect } from 'react'
 
+/** Shown in copy as the prediction API host (same default as `App` `VITE_API_URL`). */
 const API_HINT =
   import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
+/**
+ * @param {object} props
+ * @param {function(File[], number): (void|Promise<void>)} props.onRequestProcess Parent begins the processing phase.
+ * @param {string} [props.errorMessage] Batch-level error from App (e.g. all images failed).
+ * @param {function(): void} [props.onDismissError] Clears the banner when user dismisses or replaces files.
+ */
 export default function UploadScreen({
   onRequestProcess,
   errorMessage,
@@ -23,6 +35,7 @@ export default function UploadScreen({
   )
   const inputRef = useRef(null)
 
+  /** Keeps requested term count within API/UI limits (1–50). */
   const clampKeywordCount = (n) => {
     const parsed = Number(n)
     if (!Number.isFinite(parsed)) return DEFAULT_KEYWORD_COUNT
@@ -32,6 +45,7 @@ export default function UploadScreen({
     )
   }
 
+  // Object URL for the currently previewed file; revoked on dependency change/unmount.
   useEffect(() => {
     if (files.length === 0) {
       setPreviewUrl(null)
@@ -42,6 +56,7 @@ export default function UploadScreen({
     return () => URL.revokeObjectURL(url)
   }, [files, previewIndex])
 
+  // After queue shrinks, keep preview index in range.
   useEffect(() => {
     setPreviewIndex((pi) => {
       if (files.length === 0) return 0
@@ -49,6 +64,7 @@ export default function UploadScreen({
     })
   }, [files])
 
+  /** Replaces the queue from a file input or drop target. */
   const handleFiles = (incoming) => {
     const arr = Array.from(incoming || [])
     setFiles(arr)
@@ -66,6 +82,7 @@ export default function UploadScreen({
     setFiles((prev) => prev.filter((_, i) => i !== idx))
   }
 
+  /** Delegates to parent; `busy` prevents re-entry until the handoff completes. */
   const handleProcess = async () => {
     if (files.length === 0 || busy) return
     setBusy(true)
@@ -83,6 +100,7 @@ export default function UploadScreen({
 
   return (
     <div className="grid w-full min-w-0 grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
+      {/* Full-width alert from parent when the whole batch failed */}
       {errorMessage ? (
         <div className="flex min-w-0 items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 shadow-sm lg:col-span-12">
           <svg className="h-5 w-5 shrink-0 text-red-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -99,6 +117,7 @@ export default function UploadScreen({
         </div>
       ) : null}
 
+      {/* Left column (lg): large preview + optional multi-file pager */}
       <div className="flex min-w-0 flex-col gap-4 lg:col-span-7">
         <div className="flex min-w-0 flex-col gap-4">
           <div className="min-w-0 rounded-xl border-2 border-mcam-navy/25 bg-white shadow-sm">
@@ -116,6 +135,7 @@ export default function UploadScreen({
               )}
             </div>
 
+            {/* Prev/next when more than one file is queued */}
             {showNav ? (
               <div className="flex items-center justify-center gap-3 border-t border-mcam-navy/10 py-2.5">
                 <button
@@ -145,6 +165,7 @@ export default function UploadScreen({
             ) : null}
           </div>
 
+          {/* Scrollable list: select preview row, remove from queue */}
           {files.length > 0 ? (
             <div className={`${infoCardClass} flex min-h-0 w-full flex-col`}>
               <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-mcam-muted">
@@ -191,7 +212,9 @@ export default function UploadScreen({
         </div>
       </div>
 
+      {/* Right column (lg): instructions, term count, dropzone, primary CTA */}
       <div className="flex min-w-0 flex-col gap-5 lg:col-span-5">
+        {/* Explainer + API endpoint hint for operators */}
         <div className={infoCardClass}>
           <h3 className="text-sm font-semibold text-mcam-navy">
             How it works
@@ -210,6 +233,7 @@ export default function UploadScreen({
           </p>
         </div>
 
+        {/* Curatorial / workflow guidance */}
         <div className={infoCardClass}>
           <h3 className="text-sm font-semibold text-mcam-navy">Tips</h3>
           <ul className="mt-2 list-disc space-y-1.5 pl-4 text-xs text-mcam-muted">
@@ -220,6 +244,7 @@ export default function UploadScreen({
         </div>
 
         <div className="flex w-full min-w-0 flex-col gap-3">
+          {/* Slider + number stay in sync; both clamp to MIN/MAX */}
           <div className="flex min-w-0 flex-col gap-2">
             <label className="text-xs font-medium text-mcam-navy" htmlFor="kw-count">
               # Keywords to generate
@@ -273,6 +298,7 @@ export default function UploadScreen({
             <p className="text-[11px] text-mcam-muted">Limits: 1–50 keywords</p>
           </div>
 
+          {/* Accessible drop target; hidden `<input type="file">` opened programmatically */}
           <div
             tabIndex={0}
             role="button"
@@ -328,6 +354,7 @@ export default function UploadScreen({
             </span>
           </div>
 
+          {/* Hands off to `App.handleRequestProcess`; disabled while `busy` or queue empty */}
           <button
             type="button"
             onClick={handleProcess}

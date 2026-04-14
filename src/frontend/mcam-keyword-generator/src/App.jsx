@@ -1,3 +1,11 @@
+/**
+ * Root application shell for the MCAM Keyword Generator.
+ *
+ * Drives a three-phase flow: `upload` → `processing` → `result` (review).
+ * Each selected image is POSTed to `/predict` with `term_count`; responses are
+ * normalized via `mapApiKeyword`. Object URLs for previews are revoked when
+ * resetting or when the whole batch fails to avoid leaks.
+ */
 import { useState, useCallback } from 'react'
 import logoUrl from '../../../../media/logo.png'
 import UploadScreen from './components/UploadScreen'
@@ -5,6 +13,7 @@ import ReviewView from './components/ReviewView'
 import { ProcessingDisplay } from './components/figma/ProcessingDisplay'
 import { mapApiKeyword } from './utils/keywordAdapters'
 
+/** Backend base URL (override with `VITE_API_URL`). */
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 export default function App() {
@@ -16,12 +25,21 @@ export default function App() {
   const [processingLabel, setProcessingLabel] = useState('')
   const [batchError, setBatchError] = useState('')
 
+  /** Revokes blob URLs created for result thumbnails (call before discarding rows). */
   const revokeResultUrls = useCallback((list) => {
     list.forEach((r) => {
       if (r.previewUrl) URL.revokeObjectURL(r.previewUrl)
     })
   }, [])
 
+  /**
+   * Sequentially uploads each file to `/predict`, updates the processing UI,
+   * and collects success or error rows. If every request fails, revokes URLs
+   * and returns to upload with `batchError`; otherwise switches to `result`.
+   *
+   * @param {File[]} files
+   * @param {number} [termCount=20] Clamped to 1–50 server-side style in this handler.
+   */
   const handleRequestProcess = async (files, termCount = 20) => {
     if (!files.length) return
     setBatchError('')
@@ -89,6 +107,7 @@ export default function App() {
     setPhase('result')
   }
 
+  /** Clears results, revokes preview URLs, and returns to the upload phase. */
   const handleUploadNew = () => {
     revokeResultUrls(results)
     setResults([])
@@ -97,6 +116,11 @@ export default function App() {
     setBatchError('')
   }
 
+  /**
+   * Persists edited keywords for one successful result row (ReviewView).
+   * @param {number} idx
+   * @param {Array<{ text: string, confidence: number, [key: string]: unknown }>} nextKeywords UI keyword objects (same shape as `mapApiKeyword` output).
+   */
   const handleKeywordsChange = (idx, nextKeywords) => {
     setResults((prev) => {
       const copy = [...prev]
@@ -110,6 +134,7 @@ export default function App() {
 
   return (
     <div className="mcam-app flex min-h-screen flex-col bg-gradient-to-br from-slate-50 via-white to-mcam-surface text-mcam-navy">
+      {/* Sticky top bar: museum branding + live phase indicator */}
       <header className="sticky top-0 z-30 border-b-2 border-mcam-navy/15 bg-white/95 backdrop-blur-lg">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
           <div className="flex items-center gap-3">
@@ -125,6 +150,7 @@ export default function App() {
               <p className="text-xs text-mcam-muted">Art & Architecture Thesaurus Pipeline</p>
             </div>
           </div>
+          {/* Ready | Processing | Review — mirrors `phase` */}
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-[#2f62a8]/50 bg-[#d8e4f5] px-3 py-1 text-xs font-semibold text-[#1e2a44]">
               <span
@@ -141,7 +167,9 @@ export default function App() {
         </div>
       </header>
 
+      {/* Primary content: exactly one of upload hero + screen | processing | review */}
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-8 sm:px-6 sm:py-10">
+        {/* Hero blurb only on upload; processing/result have their own headings */}
         {phase === 'upload' ? (
           <div className="mb-8 text-center">
             <h2 className="text-xl font-semibold text-mcam-navy sm:text-2xl">
@@ -155,6 +183,7 @@ export default function App() {
         ) : null}
 
         <div className="flex w-full min-w-0 flex-1 justify-center">
+          {/* Upload: file queue + generate */}
           {phase === 'upload' ? (
             <div className="mx-auto w-full min-w-0 max-w-6xl shrink-0">
               <UploadScreen
@@ -165,6 +194,7 @@ export default function App() {
             </div>
           ) : null}
 
+          {/* Per-file progress + preview while `/predict` runs */}
           {phase === 'processing' ? (
             <ProcessingDisplay
               progress={processingProgress}
@@ -174,6 +204,7 @@ export default function App() {
             />
           ) : null}
 
+          {/* Batch results: navigate images, edit keywords, export */}
           {phase === 'result' ? (
             <div className="w-full min-w-0">
               <ReviewView
@@ -189,6 +220,7 @@ export default function App() {
       </main>
 
       <footer className="border-t-2 border-mcam-navy/15 bg-white/90 py-4 text-center text-xs text-mcam-muted">
+        {/* Static footer strip */}
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           AAT keyword pipeline
         </div>
