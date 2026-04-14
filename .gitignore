@@ -22,3 +22,6 @@ src/analysis/*.png
 src/analysis/*.html
 src/analysis/*.csv
 src/analysis/*.json
+src/analysis/figures/*.png
+src/analysis/figures/*.html
+!src/analysis/figures/dashboard.html
