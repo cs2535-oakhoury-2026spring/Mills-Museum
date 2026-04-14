@@ -57,7 +57,7 @@ The pipeline is primarily designed around using Google Colab, as their rather ge
 
 
 ```mermaid
-%%{init: { 'theme': 'base', 'themeVariables': { 'primaryColor': '#ff0000', 'lineColor': '#00ff00' }}}%%
+%%{init: {'theme': 'base'}}%%
 flowchart TD
     subgraph Setup["One-time Setup (on server start)"]
         A["AAT Thesaurus\n44k art terms"] -->|"Qwen3-VL-Embedding-2B"| B[("ChromaDB\n44k pre-computed embeddings")]
