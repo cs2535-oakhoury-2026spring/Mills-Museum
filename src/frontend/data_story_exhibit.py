@@ -1,3 +1,16 @@
+"""
+Data Story Exhibit — Gradio Web App
+====================================
+
+Live interactive dashboard served via Gradio. This is the version that
+runs inside the website (launched through the main Gradio app).
+
+Note: This is independent of ``src/analysis/09_dashboard.py``, which
+produces a standalone HTML file (``figures/dashboard.html``) meant to be
+opened directly in a browser. Both visualize the same AAT dataset but
+do not share code or output.
+"""
+
 from __future__ import annotations
 
 from collections import Counter, defaultdict

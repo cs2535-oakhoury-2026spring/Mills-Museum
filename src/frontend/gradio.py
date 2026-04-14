@@ -1,3 +1,16 @@
+"""
+MCAM Art Keyword Generator -- Gradio web interface.
+
+Provides a multi-image upload workflow where museum staff can:
+  1. Upload artwork images (or use pre-loaded demo images).
+  2. Generate ranked AAT keyword suggestions via embedding retrieval + reranking.
+  3. Review, accept, or reject suggestions and regenerate only the rejected slots.
+  4. Export the final keyword selections to CSV.
+
+Backend models (embedding, reranking) and the Chroma collection must be
+initialised externally and registered via `configure_backend_runtime` before
+the interface is launched.
+"""
 from __future__ import annotations
 
 import csv
@@ -18,11 +31,13 @@ from src.frontend.keyword_feedback import (
     sync_selected_terms,
 )
 
-
+# ---------------------------------------------------------------------------
+# Global defaults -- these can be overridden at runtime via configure_*()
+# ---------------------------------------------------------------------------
 DEFAULT_KEYWORD_COUNT = 10
 DEFAULT_CANDIDATE_POOL_SIZE = 80
-MMR_LAMBDA = 0.7
-MIN_SIMILARITY_THRESHOLD = 0.15
+MMR_LAMBDA = 0.7                    # controls relevance vs. diversity trade-off in MMR
+MIN_SIMILARITY_THRESHOLD = 0.15     # drop candidates below this cosine similarity
 REPO_DEMO_IMAGES: list[str] = []
 EXPORT_DIR: str | None = None
 
@@ -32,6 +47,7 @@ def empty_app_state() -> dict:
 
 
 def configure_backend_runtime(collection, embedding_model, reranking_model):
+    """Register the ML models and vector store so the UI can call them later."""
     globals()["collection"] = collection
     globals()["embedding_model"] = embedding_model
     globals()["reranking_model"] = reranking_model
@@ -41,6 +57,7 @@ def configure_demo_assets(
     image_paths: list[str] | None = None,
     export_dir: str | None = None,
 ):
+    """Set optional demo images and CSV export directory."""
     normalized_images = []
     for image_path in image_paths or []:
         resolved = str(Path(image_path).expanduser().resolve())
@@ -116,6 +133,7 @@ def initialize_upload_defaults():
 
 
 def build_keyword_choices(result):
+    """Convert internal result state into (display_label, key) pairs for the checkbox group."""
     candidates_by_key = candidate_lookup(result)
     choices: list[tuple[str, str]] = []
 
@@ -166,6 +184,7 @@ def build_action_feedback(message, kind="info"):
 
 
 def build_art_query(image, title="", medium=""):
+    """Assemble a multimodal query dict (image + optional text metadata) for the embedding model."""
     text_parts = []
     if title and title.strip():
         text_parts.append(f"Title: {title.strip()}")
@@ -220,16 +239,29 @@ def generate_ranked_candidates(
     title="",
     medium="",
 ):
+    """
+    Full retrieval-then-rerank pipeline for a single image.
+
+    Steps:
+      1. Embed the artwork (image + optional text) with the embedding model.
+      2. Retrieve a large initial set from Chroma (fetch_k = 3x pool size).
+      3. Filter out low-similarity hits.
+      4. Apply MMR to keep diverse but relevant candidates.
+      5. Rerank the shortlist with the cross-encoder reranking model.
+    Returns a list of {label, score, term_id} dicts sorted by reranker score.
+    """
     embedding_model, reranking_model, collection = get_backend_runtime()
 
     art_query = build_art_query(image, title=title, medium=medium)
     query_input = [art_query]
 
+    # Encode the artwork into a query embedding
     image_features = embedding_model.process(query_input)
     image_features = torch.nn.functional.normalize(image_features, p=2, dim=1)
     query_embedding_list = image_features.cpu().float().tolist()
     query_np = np.array(query_embedding_list[0], dtype=np.float32)
 
+    # Over-fetch so MMR and filtering have enough candidates to work with
     fetch_k = max(candidate_pool_size, target_count) * 3
     results = collection.query(
         query_embeddings=query_embedding_list,
@@ -252,6 +284,7 @@ def generate_ranked_candidates(
         raw_embeddings = (results.get("embeddings") or [[]])[0]
 
         for i, (document, metadata) in enumerate(zip(documents, metadata_list)):
+            # Chroma returns cosine *distance*; convert to similarity and filter
             if i < len(raw_distances):
                 cosine_dist = raw_distances[i]
                 similarity = 1.0 - cosine_dist
@@ -266,7 +299,7 @@ def generate_ranked_candidates(
     if not docs:
         return []
 
-    # MMR diversity selection
+    # MMR diversity selection -- narrow the pool while avoiding redundant terms
     mmr_k = max(candidate_pool_size, target_count)
     if embeddings_list and len(embeddings_list) == len(docs):
         candidate_embs = np.array(embeddings_list, dtype=np.float32)
@@ -282,6 +315,7 @@ def generate_ranked_candidates(
     labels = [labels[i] for i in selected_indices]
     term_ids = [term_ids[i] for i in selected_indices]
 
+    # Cross-encoder reranking: score each candidate against the artwork query
     rerank_inputs = {
         "instruction": (
             "You are an art cataloguing assistant. Given an artwork image, "
@@ -335,6 +369,7 @@ def render_current_image(state, message=None, kind="info"):
 
 
 def process_multiple_images(images, title, medium, state):
+    """Run the full retrieval+rerank pipeline on every uploaded image."""
     state = empty_app_state()
 
     if not images:
@@ -483,6 +518,7 @@ def previous_image(state):
 
 
 def upload_more():
+    """Reset the UI back to the upload screen so the user can start a new batch."""
     repo_files = default_repo_files()
     preview_image_value = None
     preview_counter_text = "No images selected"
@@ -514,6 +550,7 @@ def upload_more():
 
 
 def export_results(state):
+    """Collect all selected keywords across images and write them to a timestamped CSV."""
     if not state.get("all_results"):
         return "No processed results to export yet.", None, build_action_feedback(
             "Generate keywords before exporting.", "warning"
@@ -565,6 +602,10 @@ def export_results(state):
         feedback,
     )
 
+
+# ---------------------------------------------------------------------------
+# UI styling and layout
+# ---------------------------------------------------------------------------
 
 css = """
 :root {
@@ -724,6 +765,10 @@ theme = gr.themes.Soft(
 
 LOGO_PATH = str(Path(__file__).parent / "~/media/logo.png")
 
+# ---------------------------------------------------------------------------
+# Gradio Blocks layout
+# ---------------------------------------------------------------------------
+
 with gr.Blocks(css=css, theme=theme, title="MCAM Art Keyword Generator", favicon_path=LOGO_PATH) as interface:
     with gr.Column(elem_classes=["app-shell"]):
         gr.HTML(
@@ -867,6 +912,10 @@ with gr.Blocks(css=css, theme=theme, title="MCAM Art Keyword Generator", favicon
                         placeholder="Your selected keywords will appear here.",
                     )
                     upload_more_btn = gr.Button("Start a New Batch", variant="secondary")
+
+    # -------------------------------------------------------------------
+    # Event wiring -- connect buttons and inputs to handler functions
+    # -------------------------------------------------------------------
 
     upload_input.change(
         fn=on_upload,
