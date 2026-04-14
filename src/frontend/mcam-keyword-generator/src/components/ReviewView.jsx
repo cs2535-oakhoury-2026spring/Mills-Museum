@@ -46,10 +46,11 @@ export default function ReviewView({
 
   return (
     <div className="mx-auto flex w-full max-w-6xl min-w-0 flex-col gap-6">
-      {/* Top Bar */}
+      {/* Review header: navigation, batch status, and global actions. */}
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border-2 border-mcam-navy/20 bg-white px-6 py-4 shadow-sm">
-        {/* Navigation */}
+        {/* Left section: move between results in this batch. */}
         <div className="flex items-center gap-3">
+          {/* Previous result button (disabled on first item). */}
           <button
             onClick={() => setResultIndex((i) => Math.max(0, i - 1))}
             disabled={!canGoPrev}
@@ -58,12 +59,14 @@ export default function ReviewView({
           >
             <ChevronLeft size={18} />
           </button>
+          {/* Position indicator: current result out of total. */}
           <div className="text-center">
             <span className="text-lg font-bold text-mcam-navy">
               {results.length === 0 ? '—' : `${resultIndex + 1}`}
             </span>
             <span className="text-lg text-mcam-muted"> / {results.length}</span>
           </div>
+          {/* Next result button (disabled on last item). */}
           <button
             onClick={() =>
               setResultIndex((i) => Math.min(results.length - 1, i + 1))
@@ -77,6 +80,7 @@ export default function ReviewView({
         </div>
 
         {errorCount > 0 ? (
+          /* Center section: shows how many files failed processing. */
           <div className="flex items-center gap-3">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1 text-xs font-medium text-red-800 ring-1 ring-red-200">
               {errorCount} failed
@@ -84,8 +88,9 @@ export default function ReviewView({
           </div>
         ) : null}
 
-        {/* Actions */}
+        {/* Right section: export results or start a new upload batch. */}
         <div className="flex items-center gap-2">
+          {/* Export combined plain-text output. */}
           <button
             type="button"
             onClick={handleExportAll}
@@ -96,6 +101,7 @@ export default function ReviewView({
             </svg>
             Export all
           </button>
+          {/* Export combined CSV output for spreadsheets. */}
           <button
             type="button"
             onClick={handleExportCsv}
@@ -103,6 +109,7 @@ export default function ReviewView({
           >
             CSV
           </button>
+          {/* Return to uploader for a new set of images. */}
           <button
             type="button"
             onClick={onUploadNew}
@@ -113,22 +120,25 @@ export default function ReviewView({
         </div>
       </div>
 
-      {/* Result Content */}
+      {/* Main panel: show either an error card or the success review UI. */}
       {current?.type === 'error' ? (
         // Errors are displayed inline so users can still navigate the batch
         // and export other successful results.
         <div className="flex flex-col items-center gap-4 rounded-2xl border border-red-200 bg-red-50/80 px-8 py-12 text-center">
+          {/* Error icon to highlight failed processing state. */}
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-100 text-red-600">
             <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
             </svg>
           </div>
+          {/* Error details: title, filename, and backend message. */}
           <div>
             <h3 className="text-lg font-semibold text-red-900">Could not process image</h3>
             <p className="mt-1 text-sm font-medium text-red-800">{current.file.name}</p>
             <p className="mt-2 text-sm text-red-800">{current.error}</p>
           </div>
           {current.previewUrl && (
+            /* Optional thumbnail for the failed image. */
             <div className="relative mt-2 h-40 w-40 overflow-hidden rounded-xl border border-red-200 bg-red-50/50">
               <img
                 src={current.previewUrl}
@@ -139,7 +149,7 @@ export default function ReviewView({
           )}
         </div>
       ) : current?.type === 'success' ? (
-        // Delegate detailed per-image keyword interactions to ResultDisplay.
+        // Success state delegates keyword review/editing to ResultDisplay.
         <ResultDisplay
           keywords={current.keywords}
           imageSrc={current.previewUrl}

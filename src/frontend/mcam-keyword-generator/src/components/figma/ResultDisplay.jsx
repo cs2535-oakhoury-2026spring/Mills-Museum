@@ -22,7 +22,7 @@ import { reviewActionButtonSm } from '../../utils/reviewActionStyles'
  */
 export function ResultDisplay({
   imageSrc,
-  keywords,
+  keywords, // {text, confidence, selected}
   onKeywordsChange,
   fileName,
 }) {
@@ -89,7 +89,9 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
 
   return (
     <div className="mx-auto w-full max-w-6xl min-w-0">
+      {/* Two-column responsive layout: image summary (left) and keyword review (right). */}
       <div className="grid min-w-0 gap-5 xl:grid-cols-12 xl:gap-6">
+        {/* Left column: image preview card and per-image inclusion summary. */}
         <div className="min-w-0 max-w-full shrink-0 xl:col-span-4">
           <motion.div
             initial={{ opacity: 0, y: 8 }}
@@ -97,6 +99,7 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
             className="mx-auto w-full max-w-sm min-w-0 rounded-xl border-2 border-mcam-navy/20 bg-white p-4 shadow-sm xl:mx-0 xl:max-w-none xl:sticky xl:top-4"
           >
             <div className="mx-auto w-full max-w-sm min-w-0 overflow-hidden">
+              {/* Preview frame with hover-to-zoom overlay trigger. */}
               <div className="group relative h-56 min-h-56 w-full min-w-0 overflow-hidden rounded-lg border border-mcam-navy/15 bg-mcam-surface">
                 {imageSrc ? (
                   <img
@@ -105,6 +108,7 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
                     className="absolute inset-0 box-border h-full w-full max-h-full max-w-full object-contain object-center p-2"
                   />
                 ) : null}
+                {/* Full-frame button opens modal with enlarged image. */}
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(true)}
@@ -122,12 +126,14 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
             >
               {fileName}
             </p>
+            {/* Inclusion summary used for copy/export actions below. */}
             <p className="mt-2 text-center text-xs text-mcam-muted">
               {included.length} of {keywords.length} keywords included for export
             </p>
           </motion.div>
         </div>
 
+        {/* Right column: keyword tools (copy/export/filter) and selectable keyword list. */}
         <div className="min-w-0 xl:col-span-8">
           <motion.div
             initial={{ opacity: 0, y: 8 }}
@@ -135,6 +141,7 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
             transition={{ delay: 0.05 }}
             className="flex min-h-[280px] flex-col rounded-xl border-2 border-mcam-navy/20 bg-white p-4 shadow-sm"
           >
+            {/* Top row: panel title/help text and keyword action buttons. */}
             <div className="mb-3 flex flex-wrap items-start gap-3 border-b-2 border-mcam-navy/15 pb-3">
               <div className="min-w-0 flex-1">
                 <h3 className="text-sm font-medium text-mcam-navy">Keywords</h3>
@@ -142,7 +149,9 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
                   Use the checkbox or click a tile. Long labels show fully on hover. Unchecked keywords are greyed and omitted from copy and exports.
                 </p>
               </div>
+              {/* Actions apply only to currently included keywords. */}
               <div className="ms-auto flex shrink-0 flex-wrap justify-end gap-2">
+                {/* Copies included keywords as comma-separated text. */}
                 <button
                   type="button"
                   onClick={handleCopyKeywords}
@@ -152,6 +161,7 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
                   {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                   {copied ? 'Copied' : 'Copy'}
                 </button>
+                {/* Exports this image's included keywords to TXT. */}
                 <button
                   type="button"
                   onClick={handleExportText}
@@ -161,6 +171,7 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
                   <FileText className="h-3.5 w-3.5" />
                   TXT
                 </button>
+                {/* Exports this image's included keywords to CSV. */}
                 <button
                   type="button"
                   onClick={handleExportCsv}
@@ -172,9 +183,11 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
               </div>
             </div>
 
+            {/* Accessible label for the keyword filter input. */}
             <label className="sr-only" htmlFor="kw-search">
               Search keywords
             </label>
+            {/* Client-side keyword filter input with search icon affordance. */}
             <div className="relative mb-3">
               <Search
                 className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-mcam-muted"
@@ -190,12 +203,14 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
               />
             </div>
 
+            {/* Scrollable keyword tile list; each tile toggles inclusion for export. */}
             <div className="min-h-0 flex-1 overflow-y-auto rounded-md border border-mcam-navy/15 bg-mcam-surface p-2.5">
               <div className="grid grid-cols-2 gap-2 content-start">
                 {filteredWithIndex.map(({ k: keyword, i: globalIndex }) => {
                   const on = isKeywordIncluded(keyword)
                   const inputId = `kw-include-${globalIndex}`
                   return (
+                    /* Tile is a label so clicking anywhere toggles its hidden checkbox. */
                     <motion.label
                       key={`${keyword.text}-${globalIndex}`}
                       htmlFor={inputId}
@@ -208,6 +223,7 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
                           : ''
                       }`}
                     >
+                      {/* Screen-reader checkbox control that drives include/exclude state. */}
                       <input
                         id={inputId}
                         type="checkbox"
@@ -220,6 +236,7 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
                             : `${keyword.text}, excluded from export. Check to include.`
                         }
                       />
+                      {/* Visual checkmark indicator synced with checkbox state. */}
                       <span
                         aria-hidden
                         className="mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded border-2 border-white/95 bg-white/92 shadow-md peer-checked:border-[#93c5fd]/70 peer-checked:bg-[#2f5a94]/95 peer-focus-visible:ring-1 peer-focus-visible:ring-white/50 peer-focus-visible:ring-offset-1 peer-focus-visible:ring-offset-[#3b6db5] [&_svg]:opacity-0 peer-checked:[&_svg]:opacity-100"
@@ -229,6 +246,7 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
                           strokeWidth={2.5}
                         />
                       </span>
+                      {/* Keyword text, line-clamped for compact tile layout. */}
                       <span className="min-w-0 flex-1 leading-snug">
                         <span
                           className="line-clamp-2 break-words text-sm font-semibold leading-snug text-white sm:text-base"
@@ -237,6 +255,7 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
                           {keyword.text}
                         </span>
                       </span>
+                      {/* Confidence badge styled by confidence score bucket. */}
                       <span
                         className="inline-flex min-w-[2.75rem] shrink-0 items-center justify-center self-center rounded-md border border-solid px-1.5 py-0.5 text-[11px] font-bold tabular-nums leading-none shadow-sm"
                         style={getConfidenceBadgeStyle(keyword.confidence)}
