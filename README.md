@@ -71,7 +71,7 @@ The pipeline is primarily designed around using Google Colab, as their rather ge
 }}%%
 flowchart TD
     subgraph Setup["One-time Setup (on server start)"]
-        A["AAT Thesaurus\n44k art terms"] -->|"Qwen3-VL-Embedding-2B"| B[("ChromaDB\n44k pre-computed embeddings")]
+        A["Filtered AAT Thesaurus\n44k art terms"] -->|"Qwen3-VL-Embedding-2B"| B[("ChromaDB\n44k pre-computed embeddings")]
     end
 
     subgraph Request["Per Request (via ngrok → Google Colab)"]
