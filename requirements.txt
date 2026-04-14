@@ -1,16 +1,16 @@
-open_clip_torch
-# flashattention doesn't like torch 2.10 as of writing
-torch == 2.9.1
-transformers 
-pillow
+torch
+transformers
 chromadb
+datasets
+qwen-vl-utils
+hf_xet
+langchain-chroma
+langchain-core
+Pillow
+gradio
+huggingface_hub
+accelerate
 pandas
 pyarrow
 plotly
-gradio
-openpyxl
-datasets
 tqdm
-sentence-transformers
-qwen
-qwen-vl-utils
