@@ -1,5 +1,5 @@
 import { motion } from 'motion/react'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { ZoomIn, Copy, Check, FileText, Search } from 'lucide-react'
 import { ImageModal } from './ImageModal'
 import {
@@ -30,6 +30,17 @@ export function ResultDisplay({
   const [copied, setCopied] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+
+  // Reset transient UI state when the image changes
+  const prevFileNameRef = useRef(fileName)
+  useEffect(() => {
+    if (prevFileNameRef.current !== fileName) {
+      prevFileNameRef.current = fileName
+      setSearchQuery('')
+      setCopied(false)
+      setIsModalOpen(false)
+    }
+  }, [fileName])
 
   // A single definition of "included" keeps UI + copy/export behavior aligned.
   const included = keywords.filter(isKeywordIncluded)
@@ -223,7 +234,7 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
                   const inputId = `kw-include-${globalIndex}`
                   return (
                     <motion.label
-                      key={keyword.text}
+                      key={`${globalIndex}-${keyword.text}`}
                       htmlFor={inputId}
                       title={keyword.text}
                       initial={{ opacity: 0 }}
