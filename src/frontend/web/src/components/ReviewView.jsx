@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { ResultDisplay } from './figma/ResultDisplay'
+import { ResultDisplay } from './ResultDisplay'
 import {
   buildCombinedExportCsv,
   buildCombinedExportText,

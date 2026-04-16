@@ -25,7 +25,7 @@ import plotly.graph_objects as go
 
 DATA_PATH = Path("src/analysis/data_cache/aat_museum_subset.parquet")
 FIGURES_DIR = Path("src/analysis/figures")
-HERO_IMAGE = Path("src/frontend/mills.jpg")
+HERO_IMAGE = Path(__file__).resolve().parent.parent / "design" / "mills.jpg"
 CENTURY_PATTERN = re.compile(r"(\d+)(?:st|nd|rd|th)\s+centur", re.IGNORECASE)
 STOPWORDS = {"and", "of", "the", "for", "in", "with", "a", "an", "to", "or", "by", "on", "at", "as", "is"}
 FONT_STACK = "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"

@@ -31,7 +31,7 @@ Dependencies: pandas, plotly, pyarrow
 Note
 ----
 This script is independent of the Gradio web app in
-``src/frontend/data_story_exhibit.py``. That app builds its own live
+``src/frontend/data_viz/data_story_exhibit.py``. That app builds its own live
 charts for the interactive website. This script produces a standalone
 HTML file you open directly in a browser — no server required.
 """

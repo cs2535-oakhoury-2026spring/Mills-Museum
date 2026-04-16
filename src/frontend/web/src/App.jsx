@@ -10,7 +10,7 @@ import { useState, useCallback } from 'react'
 import logoUrl from '../../../../media/logo.png'
 import UploadScreen from './components/UploadScreen'
 import ReviewView from './components/ReviewView'
-import { ProcessingDisplay } from './components/figma/ProcessingDisplay'
+import { ProcessingDisplay } from './components/ProcessingDisplay'
 import { mapApiKeyword } from './utils/keywordAdapters'
 
 /** Backend base URL (override with `VITE_API_URL`). */

@@ -25,9 +25,17 @@ This project can be devided into two parts:
 ## User Interface
 The user interface connects museum staff to the labeling pipeline: a single place to upload artwork images, watch processing progress, and review model-generated AAT keyword suggestions. Staff can include or exclude individual keywords before copying or exporting results; batch uploads are supported with navigation between images.
 
+### Repository layout (frontend)
+
+These pieces all live under `src/frontend/` but serve different roles:
+
+- **`src/frontend/web/`** — React / Vite **keyword generator** UI used with the labeling pipeline (upload, processing, review). This is the main “website” for staff in that workflow.
+- **`src/frontend/data_viz/`** — Gradio **AAT thesaurus / data-story exhibit** (`data_story_exhibit.py`): interactive charts over the analyzed subset, separate from the React app.
+- **`src/frontend/gradio.py`** and **`src/frontend/keyword_feedback.py`** — **Gradio** keyword workflow (Python UI with regenerate/export helpers), not the Vite app.
+
 ### Specs
 
-**Stack.** The web app lives under `src/frontend/mcam-keyword-generator/`. It is built with **React 18**, **Vite 5**, and **Tailwind CSS v4**, with **Lucide React** for icons and **Motion** for light transitions on key screens.
+**Stack.** The React app lives under `src/frontend/web/`. It is built with **React 18**, **Vite 5**, and **Tailwind CSS v4**, with **Lucide React** for icons and **Motion** for light transitions on key screens.
 
 **Design choices.** The UI uses a **dark slate** gradient background and card surfaces with subtle rings so attention stays on the artwork and keyword list. **Amber and orange** accents mark primary actions (for example, “Generate Keywords”) and **selected** keyword tiles so recommendations read as reviewable highlights rather than plain text. The header shows a simple **phase** indicator (Ready / Processing / Review) so the flow stays obvious: **Upload → Processing → Review**.
 
@@ -37,9 +45,9 @@ The user interface connects museum staff to the labeling pipeline: a single plac
 - **Processing:** Progress bar, current image preview, and a status line (for example, which image in a batch is running).
 - **Review:** For each image, a large preview plus filename; a **keyword grid** showing **term name** and **confidence percentage** (definitions appended in API labels are stripped for display). Each keyword has a **checkbox** to include or exclude it from copy and export. Users can **filter** the list, **copy** included keywords, download a **per-image TXT** export, and **export all** batch results to a single text file. When multiple images are processed, prev/next moves between results; errors for individual files are surfaced in the review flow.
 
-**API and configuration.** The client calls `POST {VITE_API_URL}/predict` with **multipart form data**: `file` (image) and `term_count` (integer string, clamped 1–50 in the app). Set `VITE_API_URL` in `.env.local` (for example, your ngrok URL). The request sends an `ngrok-skip-browser-warning` header for compatibility with ngrok-hosted backends. The backend should return JSON shaped like `{ "keywords": [ { "label" or "text": "...", "score": <number> }, ... ] }`. Scores are treated as percentages in the UI (see `mapApiKeyword` in `src/frontend/mcam-keyword-generator/src/utils/keywordAdapters.js`); long labels that include `"term : definition"` are trimmed to the term name for display only.
+**API and configuration.** The client calls `POST {VITE_API_URL}/predict` with **multipart form data**: `file` (image) and `term_count` (integer string, clamped 1–50 in the app). Set `VITE_API_URL` in `src/frontend/web/.env.local` (for example, your ngrok URL). The request sends an `ngrok-skip-browser-warning` header for compatibility with ngrok-hosted backends. The backend should return JSON shaped like `{ "keywords": [ { "label" or "text": "...", "score": <number> }, ... ] }`. Scores are treated as percentages in the UI (see `mapApiKeyword` in `src/frontend/web/src/utils/keywordAdapters.js`); long labels that include `"term : definition"` are trimmed to the term name for display only.
 
-**Local development.** From the repo root: `npm -C src/frontend/mcam-keyword-generator install` then `npm -C src/frontend/mcam-keyword-generator run dev`. A mock backend is available via `npm -C src/frontend/mcam-keyword-generator run mock` (default `http://localhost:8000`).
+**Local development.** From the repo root: `npm -C src/frontend/web install` then `npm -C src/frontend/web run dev`. Point the app at your API by setting `VITE_API_URL` in `src/frontend/web/.env.local` (for example your ngrok or local backend URL; defaults to `http://localhost:8000` when unset).
 
 
 ## Pipeline

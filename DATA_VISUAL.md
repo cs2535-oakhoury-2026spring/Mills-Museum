@@ -2,7 +2,7 @@
 
 This repo has two visualization paths:
 
-- `src/frontend/data_story_exhibit.py` for the Gradio exhibit
+- `src/frontend/data_viz/data_story_exhibit.py` for the Gradio AAT data-story exhibit
 - `src/analysis/09_dashboard.py` for the standalone analysis dashboard
 
 Both expect an AAT-style parquet snapshot with this schema:
@@ -47,5 +47,11 @@ From the repo root:
 
 ```bash
 pip install -r requirements.txt
-python -m src.frontend.data_story_exhibit
+python -m src.frontend.data_viz.data_story_exhibit
+```
+
+Or, after installing the project in editable mode, run the console script:
+
+```bash
+mills-data-exhibit
 ```

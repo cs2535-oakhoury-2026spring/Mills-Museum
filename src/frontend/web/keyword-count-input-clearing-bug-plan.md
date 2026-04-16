@@ -4,10 +4,10 @@
 Fix the “number input clears” bug in `UploadScreen.jsx` without reintroducing the clamp behavior issue (where the input is forced to a value while the user is actively deleting/typing).
 
 ## Files involved
-- `src/frontend/mcam-keyword-generator/src/components/UploadScreen.jsx`
+- `src/frontend/web/src/components/UploadScreen.jsx`
   - Current behavior: both the range slider and the number input are controlled by the same `keywordCount` state, and `onChange` immediately calls `clampKeywordCount(...)`.
   - Bug source: when the number input becomes `''`, the current clamp path converts it into a valid number (so the UI can’t remain empty while editing).
-- `src/frontend/mcam-keyword-generator/src/App.jsx`
+- `src/frontend/web/src/App.jsx`
   - Keep existing backend/front-end clamping on request (`term_count`) as-is. This plan focuses on fixing the *UI editing* behavior.
 
 ## Key logic to change (UploadScreen.jsx)

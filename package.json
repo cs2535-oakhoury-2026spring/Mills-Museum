@@ -2,9 +2,8 @@
   "name": "mills-museum",
   "private": true,
   "scripts": {
-    "dev": "npm run dev --prefix src/frontend/mcam-keyword-generator",
-    "dev:3001": "npm run dev:3001 --prefix src/frontend/mcam-keyword-generator",
-    "build": "npm run build --prefix src/frontend/mcam-keyword-generator",
-    "mock": "npm run mock --prefix src/frontend/mcam-keyword-generator"
+    "dev": "npm run dev --prefix src/frontend/web",
+    "dev:3001": "npm run dev:3001 --prefix src/frontend/web",
+    "build": "npm run build --prefix src/frontend/web"
   }
 }

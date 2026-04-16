@@ -15,4 +15,4 @@ dependencies = [
 ]
 
 [project.scripts]
-mills-data-exhibit = "src.frontend.data_story_exhibit:main"
+mills-data-exhibit = "src.frontend.data_viz.data_story_exhibit:main"
