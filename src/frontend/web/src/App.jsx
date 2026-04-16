@@ -129,20 +129,27 @@ export default function App() {
    * with unscored keywords + a job_id; reranking scores arrive via polling.
    *
    * @param {File[]} files
-   * @param {number} [termCount=20] Clamped to 1–50 server-side style in this handler.
+   * @param {number|object} termCountOrMap - Either a number (simple mode) or
+   *   a hierarchy counts map like { "Materials": 3, "Color": 2 } (per-hierarchy mode).
    */
-  const handleRequestProcess = async (files, termCount = 20) => {
+  const handleRequestProcess = async (files, termCountOrMap = 20) => {
     if (!files.length) return
     setBatchError('')
     setPhase('processing')
     setProcessingProgress(0)
     setProcessingPreviewUrl('')
     const acc = []
-    const clampedTermCount = (() => {
-      const n = Number(termCount)
-      if (!Number.isFinite(n)) return 20
-      return Math.max(1, Math.min(50, Math.round(n)))
-    })()
+
+    const isPerHierarchy =
+      typeof termCountOrMap === 'object' && termCountOrMap !== null
+
+    const clampedTermCount = isPerHierarchy
+      ? null
+      : (() => {
+          const n = Number(termCountOrMap)
+          if (!Number.isFinite(n)) return 20
+          return Math.max(1, Math.min(50, Math.round(n)))
+        })()
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i]
@@ -152,7 +159,11 @@ export default function App() {
       try {
         const formData = new FormData()
         formData.append('file', file)
-        formData.append('term_count', String(clampedTermCount))
+        if (isPerHierarchy) {
+          formData.append('hierarchy_counts', JSON.stringify(termCountOrMap))
+        } else {
+          formData.append('term_count', String(clampedTermCount))
+        }
         const res = await fetch(`${API_URL}/predict`, {
           method: 'POST',
           headers: { 'ngrok-skip-browser-warning': 'true' },

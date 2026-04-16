@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react'
 import { useState, useEffect, useRef } from 'react'
-import { ZoomIn, Copy, Check, FileText, Search, ChevronDown, Layers } from 'lucide-react'
+import { ZoomIn, Copy, Check, FileText, Search, ChevronDown, ChevronLeft, ChevronRight, Layers } from 'lucide-react'
 import { ImageModal } from './ImageModal'
 import {
   getAccessionNumberFromTitle,
@@ -9,7 +9,7 @@ import {
   downloadTextFile,
 } from '../utils/keywordAdapters'
 import { getConfidenceBadgeStyle } from '../utils/confidenceBadgeStyle'
-import { reviewActionButtonSm } from '../utils/reviewActionStyles'
+import { reviewActionButtonSm, reviewActionButtonLg } from '../utils/reviewActionStyles'
 
 /**
  * Per-image review panel.
@@ -21,6 +21,9 @@ import { reviewActionButtonSm } from '../utils/reviewActionStyles'
  * - search query
  * - scope note expansion
  * - hierarchy grouping toggle
+ *
+ * The `nav` prop provides batch-level navigation and export controls,
+ * rendered underneath the image preview.
  */
 export function ResultDisplay({
   imageSrc,
@@ -28,6 +31,7 @@ export function ResultDisplay({
   onKeywordsChange,
   fileName,
   rerankProgress,
+  nav,
 }) {
   const [copied, setCopied] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -237,44 +241,111 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
     <div className="w-full min-w-0">
       {/* Side-by-side layout: image (left) + keywords (right) */}
       <div className="grid min-w-0 gap-4 lg:grid-cols-12">
-        {/* Left column: large image preview */}
+        {/* Left column: image preview + navigation + batch actions */}
         <div className="min-w-0 lg:col-span-5">
-          <motion.div
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="rounded-lg border border-mcam-navy/15 bg-white p-3 shadow-sm lg:sticky lg:top-16"
-          >
-            {/* Image preview — taller to show artwork properly */}
-            <div className="group relative aspect-[4/3] w-full min-w-0 overflow-hidden rounded-md border border-mcam-navy/10 bg-mcam-surface">
-              {imageSrc ? (
-                <img
-                  src={imageSrc}
-                  alt=""
-                  className="absolute inset-0 box-border h-full w-full max-h-full max-w-full object-contain object-center p-2"
-                />
-              ) : null}
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(true)}
-                disabled={!imageSrc}
-                className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100 disabled:pointer-events-none disabled:opacity-0"
-                aria-label="Enlarge image"
-              >
-                <ZoomIn className="h-6 w-6 text-white" />
-              </button>
-            </div>
-            <div className="mt-2 flex items-center justify-between gap-2">
-              <p
-                className="min-w-0 truncate text-xs text-mcam-navy"
-                title={fileName}
-              >
-                {fileName}
-              </p>
-              <p className="shrink-0 text-[11px] text-mcam-muted">
-                {included.length}/{keywords.length} included
-              </p>
-            </div>
-          </motion.div>
+          <div className="flex flex-col gap-3 lg:sticky lg:top-16">
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-lg border border-mcam-navy/15 bg-white p-3 shadow-sm"
+            >
+              {/* Image preview */}
+              <div className="group relative aspect-[4/3] w-full min-w-0 overflow-hidden rounded-md border border-mcam-navy/10 bg-mcam-surface">
+                {imageSrc ? (
+                  <img
+                    src={imageSrc}
+                    alt=""
+                    className="absolute inset-0 box-border h-full w-full max-h-full max-w-full object-contain object-center p-2"
+                  />
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(true)}
+                  disabled={!imageSrc}
+                  className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100 disabled:pointer-events-none disabled:opacity-0"
+                  aria-label="Enlarge image"
+                >
+                  <ZoomIn className="h-6 w-6 text-white" />
+                </button>
+              </div>
+              <div className="mt-2 flex items-center justify-between gap-2">
+                <p
+                  className="min-w-0 truncate text-xs text-mcam-navy"
+                  title={fileName}
+                >
+                  {fileName}
+                </p>
+                <p className="shrink-0 text-[11px] text-mcam-muted">
+                  {included.length}/{keywords.length} included
+                </p>
+              </div>
+            </motion.div>
+
+            {/* Navigation + batch actions (moved from top bar) */}
+            {nav ? (
+              <div className="flex flex-col gap-2 rounded-lg border border-mcam-navy/15 bg-white px-3 py-2.5 shadow-sm">
+                {/* Image navigation */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={nav.onPrev}
+                      disabled={!nav.canGoPrev}
+                      className="flex h-7 w-7 items-center justify-center rounded-md border border-mcam-navy/20 bg-mcam-surface text-mcam-navy transition-all hover:border-mcam-blue hover:text-mcam-blue disabled:cursor-not-allowed disabled:border-mcam-navy/10 disabled:text-mcam-muted"
+                      aria-label="Previous image"
+                    >
+                      <ChevronLeft size={14} />
+                    </button>
+                    <span className="text-sm tabular-nums text-mcam-navy">
+                      <span className="font-semibold">{nav.resultCount === 0 ? '\u2014' : `${nav.resultIndex + 1}`}</span>
+                      <span className="text-mcam-muted"> / {nav.resultCount}</span>
+                    </span>
+                    <button
+                      onClick={nav.onNext}
+                      disabled={!nav.canGoNext}
+                      className="flex h-7 w-7 items-center justify-center rounded-md border border-mcam-navy/20 bg-mcam-surface text-mcam-navy transition-all hover:border-mcam-blue hover:text-mcam-blue disabled:cursor-not-allowed disabled:border-mcam-navy/10 disabled:text-mcam-muted"
+                      aria-label="Next image"
+                    >
+                      <ChevronRight size={14} />
+                    </button>
+                  </div>
+
+                  {nav.errorCount > 0 ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-800 ring-1 ring-red-200">
+                      {nav.errorCount} failed
+                    </span>
+                  ) : null}
+                </div>
+
+                {/* Batch export + upload new */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={nav.onExportAll}
+                    className={reviewActionButtonLg}
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                    </svg>
+                    Export all
+                  </button>
+                  <button
+                    type="button"
+                    onClick={nav.onExportCsv}
+                    className={reviewActionButtonLg}
+                  >
+                    CSV
+                  </button>
+                  <button
+                    type="button"
+                    onClick={nav.onUploadNew}
+                    className={reviewActionButtonLg}
+                  >
+                    Upload new
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </div>
         </div>
 
         {/* Right column: keyword tools + selectable keyword grid */}

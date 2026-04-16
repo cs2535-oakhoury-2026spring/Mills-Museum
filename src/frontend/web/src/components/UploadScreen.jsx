@@ -1,7 +1,10 @@
 /**
  * Upload and queue UI: pick images, preview the active file, set keyword count,
- * and start batch processing. Communicates with the parent only through
- * `onRequestProcess(files, keywordCount)`; local `busy` guards double submits.
+ * and start batch processing. Supports a per-hierarchy mode where the user can
+ * independently choose how many keywords to generate from each AAT hierarchy.
+ *
+ * Communicates with the parent through
+ * `onRequestProcess(files, keywordCount | hierarchyCounts)`.
  */
 import { useState, useRef, useEffect } from 'react'
 
@@ -9,21 +12,25 @@ import { useState, useRef, useEffect } from 'react'
 const API_HINT =
   import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
+const DEFAULT_KEYWORD_COUNT = 20
+const MIN_KEYWORD_COUNT = 1
+const MAX_KEYWORD_COUNT = 50
+
+const PER_HIERARCHY_MIN = 0
+const PER_HIERARCHY_MAX = 10
+const PER_HIERARCHY_DEFAULT = 2
+
 /**
  * @param {object} props
- * @param {function(File[], number): (void|Promise<void>)} props.onRequestProcess Parent begins the processing phase.
- * @param {string} [props.errorMessage] Batch-level error from App (e.g. all images failed).
- * @param {function(): void} [props.onDismissError] Clears the banner when user dismisses or replaces files.
+ * @param {function(File[], number|object): (void|Promise<void>)} props.onRequestProcess
+ * @param {string} [props.errorMessage]
+ * @param {function(): void} [props.onDismissError]
  */
 export default function UploadScreen({
   onRequestProcess,
   errorMessage,
   onDismissError,
 }) {
-  const DEFAULT_KEYWORD_COUNT = 20
-  const MIN_KEYWORD_COUNT = 1
-  const MAX_KEYWORD_COUNT = 50
-
   const [files, setFiles] = useState([])
   const [previewIndex, setPreviewIndex] = useState(0)
   const [previewUrl, setPreviewUrl] = useState(null)
@@ -35,7 +42,40 @@ export default function UploadScreen({
   )
   const inputRef = useRef(null)
 
-  /** Keeps requested term count within API/UI limits (1–50). */
+  // ── Per-hierarchy state ──
+  const [perHierarchyMode, setPerHierarchyMode] = useState(false)
+  const [hierarchyNames, setHierarchyNames] = useState([])
+  const [hierarchyCounts, setHierarchyCounts] = useState({})
+  const [hierarchyTexts, setHierarchyTexts] = useState({})
+  const [hierarchyFetchError, setHierarchyFetchError] = useState(false)
+
+  /** Fetch available hierarchies from the backend on mount. */
+  useEffect(() => {
+    let cancelled = false
+    fetch(`${API_HINT}/facets`, {
+      headers: { 'ngrok-skip-browser-warning': 'true' },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled) return
+        const names = data.hierarchies || []
+        setHierarchyNames(names)
+        const defaults = {}
+        const defaultTexts = {}
+        for (const n of names) {
+          defaults[n] = PER_HIERARCHY_DEFAULT
+          defaultTexts[n] = String(PER_HIERARCHY_DEFAULT)
+        }
+        setHierarchyCounts(defaults)
+        setHierarchyTexts(defaultTexts)
+      })
+      .catch(() => {
+        if (!cancelled) setHierarchyFetchError(true)
+      })
+    return () => { cancelled = true }
+  }, [])
+
+  /** Keeps requested term count within API/UI limits (1-50). */
   const clampKeywordCount = (n) => {
     const parsed = Number(n)
     if (!Number.isFinite(parsed)) return DEFAULT_KEYWORD_COUNT
@@ -43,6 +83,26 @@ export default function UploadScreen({
       MIN_KEYWORD_COUNT,
       Math.min(MAX_KEYWORD_COUNT, Math.round(parsed)),
     )
+  }
+
+  const clampHierarchyCount = (n) => {
+    const parsed = Number(n)
+    if (!Number.isFinite(parsed)) return PER_HIERARCHY_DEFAULT
+    return Math.max(
+      PER_HIERARCHY_MIN,
+      Math.min(PER_HIERARCHY_MAX, Math.round(parsed)),
+    )
+  }
+
+  const totalHierarchyCount = Object.values(hierarchyCounts).reduce(
+    (sum, v) => sum + v,
+    0,
+  )
+
+  const updateHierarchyCount = (name, raw) => {
+    const next = clampHierarchyCount(raw)
+    setHierarchyCounts((prev) => ({ ...prev, [name]: next }))
+    setHierarchyTexts((prev) => ({ ...prev, [name]: String(next) }))
   }
 
   // Object URL for the currently previewed file; revoked on dependency change/unmount.
@@ -82,12 +142,21 @@ export default function UploadScreen({
     setFiles((prev) => prev.filter((_, i) => i !== idx))
   }
 
+  const canGenerate =
+    files.length > 0 &&
+    !busy &&
+    (perHierarchyMode ? totalHierarchyCount > 0 : true)
+
   /** Delegates to parent; `busy` prevents re-entry until the handoff completes. */
   const handleProcess = async () => {
-    if (files.length === 0 || busy) return
+    if (!canGenerate) return
     setBusy(true)
     try {
-      await onRequestProcess(files, keywordCount)
+      if (perHierarchyMode) {
+        await onRequestProcess(files, hierarchyCounts)
+      } else {
+        await onRequestProcess(files, keywordCount)
+      }
     } finally {
       setBusy(false)
     }
@@ -96,7 +165,7 @@ export default function UploadScreen({
   const showNav = files.length > 1
 
   const infoCardClass =
-    'rounded-xl border-2 border-mcam-navy/20 bg-white p-4 shadow-sm'
+    'rounded-xl border-2 border-mcam-navy/20 bg-white p-5 shadow-sm'
 
   return (
     <div className="grid w-full min-w-0 grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8">
@@ -145,7 +214,7 @@ export default function UploadScreen({
                   className="rounded-md border border-mcam-navy/20 bg-mcam-surface px-2.5 py-1 text-xs text-mcam-navy disabled:cursor-not-allowed disabled:border-mcam-navy/10 disabled:bg-white disabled:text-mcam-muted"
                   aria-label="Previous file preview"
                 >
-                  ←
+                  &larr;
                 </button>
                 <span className="min-w-[5rem] text-center text-xs text-mcam-muted">
                   {previewIndex + 1} / {files.length}
@@ -159,7 +228,7 @@ export default function UploadScreen({
                   className="rounded-md border border-mcam-navy/20 bg-mcam-surface px-2.5 py-1 text-xs text-mcam-navy disabled:cursor-not-allowed disabled:border-mcam-navy/10 disabled:bg-white disabled:text-mcam-muted"
                   aria-label="Next file preview"
                 >
-                  →
+                  &rarr;
                 </button>
               </div>
             ) : null}
@@ -200,7 +269,7 @@ export default function UploadScreen({
                           className="shrink-0 rounded-md px-1.5 py-1 text-xs text-mcam-muted transition-colors hover:bg-red-50 hover:text-red-700"
                           aria-label={`Remove ${file.name}`}
                         >
-                          ×
+                          &times;
                         </button>
                       </div>
                     </li>
@@ -213,17 +282,27 @@ export default function UploadScreen({
       </div>
 
       {/* Right column (lg): instructions, term count, dropzone, primary CTA */}
-      <div className="flex min-w-0 flex-col gap-5 lg:col-span-5">
-        {/* Explainer + API endpoint hint for operators */}
+      <div className="flex min-w-0 flex-col gap-4 lg:col-span-5">
+        {/* Combined How-it-works + Tips card */}
         <div className={infoCardClass}>
           <h3 className="text-sm font-semibold text-mcam-navy">
             How it works
           </h3>
-          <ol className="mt-2 list-decimal space-y-1.5 pl-4 text-xs text-mcam-muted">
+          <ol className="mt-2 list-decimal space-y-1 pl-4 text-xs text-mcam-muted">
             <li>Add one or more artwork images (JPEG, PNG, WebP, and other common formats).</li>
             <li>Run generation; the model proposes AAT-style keywords with confidence scores.</li>
             <li>Review each image, toggle keywords, then copy or export for cataloging.</li>
           </ol>
+
+          <hr className="my-3 border-mcam-navy/10" />
+
+          <h3 className="text-sm font-semibold text-mcam-navy">Tips</h3>
+          <ul className="mt-2 list-disc space-y-1 pl-4 text-xs text-mcam-muted">
+            <li>Treat suggestions as a starting point -- curate before using in records.</li>
+            <li>Large batches are processed one image at a time; progress appears after you start.</li>
+            <li>If every image fails, check that the API URL is reachable and the server is up.</li>
+          </ul>
+
           <p className="mt-3 text-[11px] leading-relaxed text-mcam-muted">
             Prediction calls go to{' '}
             <code className="rounded border border-mcam-navy/20 bg-mcam-surface px-1 py-0.5 text-mcam-navy">
@@ -233,70 +312,161 @@ export default function UploadScreen({
           </p>
         </div>
 
-        {/* Curatorial / workflow guidance */}
-        <div className={infoCardClass}>
-          <h3 className="text-sm font-semibold text-mcam-navy">Tips</h3>
-          <ul className="mt-2 list-disc space-y-1.5 pl-4 text-xs text-mcam-muted">
-            <li>Treat suggestions as a starting point—curate before using in records.</li>
-            <li>Large batches are processed one image at a time; progress appears after you start.</li>
-            <li>If every image fails, check that the API URL is reachable and the server is up.</li>
-          </ul>
-        </div>
-
-        <div className="flex w-full min-w-0 flex-col gap-3">
-          {/* Slider + number stay in sync; both clamp to MIN/MAX */}
-          <div className="flex min-w-0 flex-col gap-2">
-            <label className="text-xs font-medium text-mcam-navy" htmlFor="kw-count">
-              # Keywords to generate
-            </label>
-            <div className="flex items-center gap-3">
-              <input
-                id="kw-count"
-                type="range"
-                min={MIN_KEYWORD_COUNT}
-                max={MAX_KEYWORD_COUNT}
-                step={1}
-                value={keywordCount}
-                onChange={(e) => {
-                  const next = clampKeywordCount(e.target.value)
-                  setKeywordCount(next)
-                  setKeywordCountText(String(next))
-                }}
-                className="h-2 w-full cursor-pointer accent-mcam-navy"
-                aria-label="Keyword count"
-              />
-              <input
-                type="number"
-                min={MIN_KEYWORD_COUNT}
-                max={MAX_KEYWORD_COUNT}
-                step={1}
-                value={keywordCountText}
-                onChange={(e) => {
-                  const nextText = e.target.value
-                  setKeywordCountText(nextText)
-
-                  if (nextText === '') return
-
-                  const parsed = parseInt(nextText, 10)
-                  if (Number.isNaN(parsed)) return
-
-                  const next = clampKeywordCount(parsed)
-                  setKeywordCount(next)
-                  if (String(next) !== nextText) {
+        {/* Keyword count controls */}
+        <div className="flex w-full min-w-0 flex-col gap-4">
+          {/* Simple mode: single slider */}
+          {!perHierarchyMode ? (
+            <div className="flex min-w-0 flex-col gap-2">
+              <label className="text-xs font-medium text-mcam-navy" htmlFor="kw-count">
+                # Keywords to generate
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  id="kw-count"
+                  type="range"
+                  min={MIN_KEYWORD_COUNT}
+                  max={MAX_KEYWORD_COUNT}
+                  step={1}
+                  value={keywordCount}
+                  onChange={(e) => {
+                    const next = clampKeywordCount(e.target.value)
+                    setKeywordCount(next)
                     setKeywordCountText(String(next))
-                  }
-                }}
-                onBlur={() => {
-                  if (keywordCountText === '') {
-                    setKeywordCountText(String(keywordCount))
-                  }
-                }}
-                className="w-20 rounded-md border-2 border-mcam-navy/25 bg-white py-2 px-2 text-sm text-mcam-navy placeholder:text-mcam-muted focus:border-mcam-blue focus:outline-none"
-                aria-label="Keyword count (number)"
-              />
+                  }}
+                  className="h-2 w-full cursor-pointer accent-mcam-navy"
+                  aria-label="Keyword count"
+                />
+                <input
+                  type="number"
+                  min={MIN_KEYWORD_COUNT}
+                  max={MAX_KEYWORD_COUNT}
+                  step={1}
+                  value={keywordCountText}
+                  onChange={(e) => {
+                    const nextText = e.target.value
+                    setKeywordCountText(nextText)
+                    if (nextText === '') return
+                    const parsed = parseInt(nextText, 10)
+                    if (Number.isNaN(parsed)) return
+                    const next = clampKeywordCount(parsed)
+                    setKeywordCount(next)
+                    if (String(next) !== nextText) {
+                      setKeywordCountText(String(next))
+                    }
+                  }}
+                  onBlur={() => {
+                    if (keywordCountText === '') {
+                      setKeywordCountText(String(keywordCount))
+                    }
+                  }}
+                  className="w-20 rounded-md border-2 border-mcam-navy/25 bg-white py-2 px-2 text-sm text-mcam-navy placeholder:text-mcam-muted focus:border-mcam-blue focus:outline-none"
+                  aria-label="Keyword count (number)"
+                />
+              </div>
+              <p className="text-[11px] text-mcam-muted">Limits: 1-50 keywords</p>
             </div>
-            <p className="text-[11px] text-mcam-muted">Limits: 1–50 keywords</p>
-          </div>
+          ) : null}
+
+          {/* Per-hierarchy toggle */}
+          {hierarchyNames.length > 0 && !hierarchyFetchError ? (
+            <button
+              type="button"
+              onClick={() => setPerHierarchyMode((v) => !v)}
+              className="flex items-center gap-2.5 self-start"
+            >
+              <span
+                className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
+                  perHierarchyMode ? 'bg-mcam-blue' : 'bg-mcam-navy/20'
+                }`}
+              >
+                <span
+                  className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform ${
+                    perHierarchyMode ? 'translate-x-[18px]' : 'translate-x-[3px]'
+                  }`}
+                />
+              </span>
+              <span className="text-xs font-medium text-mcam-navy">
+                Per-hierarchy controls
+              </span>
+            </button>
+          ) : null}
+
+          {/* Per-hierarchy sliders */}
+          {perHierarchyMode && hierarchyNames.length > 0 ? (
+            <div className={`${infoCardClass} flex flex-col gap-3`}>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-mcam-navy">
+                  Keywords per hierarchy
+                </span>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                    totalHierarchyCount === 0
+                      ? 'bg-red-100 text-red-700'
+                      : 'bg-mcam-blue-light text-mcam-navy'
+                  }`}
+                >
+                  Total: {totalHierarchyCount}
+                </span>
+              </div>
+
+              {totalHierarchyCount === 0 ? (
+                <p className="text-[11px] text-red-600">
+                  Set at least one hierarchy above 0 to generate keywords.
+                </p>
+              ) : null}
+
+              <div className="max-h-72 space-y-2.5 overflow-y-auto overscroll-contain pr-1">
+                {hierarchyNames.map((name) => (
+                  <div key={name} className="flex items-center gap-2">
+                    <span className="w-[140px] shrink-0 truncate text-[11px] font-medium text-mcam-navy" title={name}>
+                      {name}
+                    </span>
+                    <input
+                      type="range"
+                      min={PER_HIERARCHY_MIN}
+                      max={PER_HIERARCHY_MAX}
+                      step={1}
+                      value={hierarchyCounts[name] ?? PER_HIERARCHY_DEFAULT}
+                      onChange={(e) => updateHierarchyCount(name, e.target.value)}
+                      className="h-1.5 w-full min-w-0 cursor-pointer accent-mcam-navy"
+                      aria-label={`${name} keyword count`}
+                    />
+                    <input
+                      type="number"
+                      min={PER_HIERARCHY_MIN}
+                      max={PER_HIERARCHY_MAX}
+                      step={1}
+                      value={hierarchyTexts[name] ?? String(PER_HIERARCHY_DEFAULT)}
+                      onChange={(e) => {
+                        const nextText = e.target.value
+                        setHierarchyTexts((prev) => ({ ...prev, [name]: nextText }))
+                        if (nextText === '') return
+                        const parsed = parseInt(nextText, 10)
+                        if (Number.isNaN(parsed)) return
+                        const clamped = clampHierarchyCount(parsed)
+                        setHierarchyCounts((prev) => ({ ...prev, [name]: clamped }))
+                        if (String(clamped) !== nextText) {
+                          setHierarchyTexts((prev) => ({ ...prev, [name]: String(clamped) }))
+                        }
+                      }}
+                      onBlur={() => {
+                        if ((hierarchyTexts[name] ?? '') === '') {
+                          const current = hierarchyCounts[name] ?? PER_HIERARCHY_DEFAULT
+                          setHierarchyTexts((prev) => ({ ...prev, [name]: String(current) }))
+                        }
+                      }}
+                      className="w-14 shrink-0 rounded-md border-2 border-mcam-navy/25 bg-white py-1 px-1.5 text-center text-xs text-mcam-navy focus:border-mcam-blue focus:outline-none"
+                      aria-label={`${name} keyword count (number)`}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <p className="text-[11px] text-mcam-muted">
+                0-10 per hierarchy. Set 0 to exclude a hierarchy.
+              </p>
+            </div>
+          ) : null}
 
           {/* Accessible drop target; hidden `<input type="file">` opened programmatically */}
           <div
@@ -346,7 +516,7 @@ export default function UploadScreen({
                 Drop images here
               </p>
               <p className="mt-0.5 text-[11px] text-mcam-muted">
-                or click · multiple OK
+                or click &middot; multiple OK
               </p>
             </div>
             <span className="rounded-md border border-mcam-navy/15 bg-mcam-surface px-2.5 py-1 text-[11px] font-medium text-mcam-navy transition-all group-hover:border-mcam-blue/50 group-hover:bg-mcam-blue-light group-hover:text-mcam-blue">
@@ -358,7 +528,7 @@ export default function UploadScreen({
           <button
             type="button"
             onClick={handleProcess}
-            disabled={files.length === 0 || busy}
+            disabled={!canGenerate}
             className="w-full rounded-xl border-2 border-[#1e2a44]/35 bg-[#1e2a44] px-4 py-3 text-sm font-semibold !text-white shadow-md transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:border-[#c5cedd] disabled:bg-[#e8ecf2] disabled:!text-[#3d4d66] disabled:shadow-none"
           >
             {busy ? (
