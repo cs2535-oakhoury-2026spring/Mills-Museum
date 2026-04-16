@@ -7,9 +7,9 @@ import {
   isKeywordIncluded,
   stripFileExtension,
   downloadTextFile,
-} from '../../utils/keywordAdapters'
-import { getConfidenceBadgeStyle } from '../../utils/confidenceBadgeStyle'
-import { reviewActionButtonSm } from '../../utils/reviewActionStyles'
+} from '../utils/keywordAdapters'
+import { getConfidenceBadgeStyle } from '../utils/confidenceBadgeStyle'
+import { reviewActionButtonSm } from '../utils/reviewActionStyles'
 
 /**
  * Per-image review panel.

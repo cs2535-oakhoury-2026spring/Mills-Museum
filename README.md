@@ -27,7 +27,7 @@ The user interface connects museum staff to the labeling pipeline: a single plac
 
 ### Specs
 
-**Stack.** The web app lives under `src/frontend/mcam-keyword-generator/`. It is built with **React 18**, **Vite 5**, and **Tailwind CSS v4**, with **Lucide React** for icons and **Motion** for light transitions on key screens.
+**Stack.** The web app lives under `src/frontend/web/`. It is built with **React 18**, **Vite 5**, and **Tailwind CSS v4**, with **Lucide React** for icons and **Motion** for light transitions on key screens.
 
 **Design choices.** The UI uses a **dark slate** gradient background and card surfaces with subtle rings so attention stays on the artwork and keyword list. **Amber and orange** accents mark primary actions (for example, “Generate Keywords”) and **selected** keyword tiles so recommendations read as reviewable highlights rather than plain text. The header shows a simple **phase** indicator (Ready / Processing / Review) so the flow stays obvious: **Upload → Processing → Review**.
 
@@ -37,9 +37,36 @@ The user interface connects museum staff to the labeling pipeline: a single plac
 - **Processing:** Progress bar, current image preview, and a status line (for example, which image in a batch is running).
 - **Review:** For each image, a large preview plus filename; a **keyword grid** showing **term name** and **confidence percentage** (definitions appended in API labels are stripped for display). Each keyword has a **checkbox** to include or exclude it from copy and export. Users can **filter** the list, **copy** included keywords, download a **per-image TXT** export, and **export all** batch results to a single text file. When multiple images are processed, prev/next moves between results; errors for individual files are surfaced in the review flow.
 
-**API and configuration.** The client calls `POST {VITE_API_URL}/predict` with **multipart form data**: `file` (image) and `term_count` (integer string, clamped 1–50 in the app). Set `VITE_API_URL` in `.env.local` (for example, your ngrok URL). The request sends an `ngrok-skip-browser-warning` header for compatibility with ngrok-hosted backends. The backend should return JSON shaped like `{ "keywords": [ { "label" or "text": "...", "score": <number> }, ... ] }`. Scores are treated as percentages in the UI (see `mapApiKeyword` in `src/frontend/mcam-keyword-generator/src/utils/keywordAdapters.js`); long labels that include `"term : definition"` are trimmed to the term name for display only.
+**API and configuration.** The client calls `POST {VITE_API_URL}/predict` with **multipart form data**: `file` (image) and `term_count` (integer string, clamped 1–50 in the app). Set `VITE_API_URL` in `.env.local` (for example, your ngrok URL). The request sends an `ngrok-skip-browser-warning` header for compatibility with ngrok-hosted backends. The backend should return JSON shaped like `{ "keywords": [ { "label" or "text": "...", "score": <number> }, ... ] }`. Scores are treated as percentages in the UI (see `mapApiKeyword` in `src/frontend/web/src/utils/keywordAdapters.js`); long labels that include `"term : definition"` are trimmed to the term name for display only.
 
-**Local development.** From the repo root: `npm -C src/frontend/mcam-keyword-generator install` then `npm -C src/frontend/mcam-keyword-generator run dev`. A mock backend is available via `npm -C src/frontend/mcam-keyword-generator run mock` (default `http://localhost:8000`).
+**Local development.** From the repo root: `npm -C src/frontend/web install` then `npm -C src/frontend/web run dev`. A mock backend is available via `npm -C src/frontend/web run mock` (default `http://localhost:8000`).
+
+**Running via Colab.** Open `colab/mcam_server.ipynb` in Google Colab and run all cells. The notebook clones the repo, loads the VDB from `src/data/VDB/`, downloads models from Hugging Face, and starts a FastAPI server exposed via ngrok.
+
+
+## Project Structure
+
+```
+Mills-Museum/
+├── colab/
+│   └── mcam_server.ipynb       # Main Colab notebook — runs the full pipeline
+├── src/
+│   ├── data/
+│   │   └── VDB/                # ChromaDB vector store (44k AAT term embeddings)
+│   ├── frontend/
+│   │   ├── web/                # React + Vite + Tailwind frontend
+│   │   ├── gradio.py           # Standalone Gradio interface
+│   │   ├── keyword_feedback.py # Keyword review utilities
+│   │   ├── data_story_exhibit.py # Data visualization dashboard
+│   │   └── design/             # Figma prototypes and assets
+│   └── analysis/               # Data analysis scripts and dashboard
+├── scripts/
+│   ├── hf_upload_scripts/      # Hugging Face dataset upload utilities
+│   └── pipeline/               # Data filtration pipeline
+├── requirements.txt
+├── pyproject.toml
+└── README.md
+```
 
 
 ## Pipeline
@@ -69,4 +96,12 @@ flowchart TD
         E -->|"Qwen3-VL-Reranker-2B\nscores image + term pairs"| F["Ranked keywords\nwith confidence %"]
         F --> G["React frontend\nuser reviews & exports"]
     end
+```
+```mermaid
+flowchart TD
+    A[Artwork] -->|image| B[Embedder]
+    B -->|image vector| C[(Vector DB 44k AAT Terms)]
+    C -->|top candidates| D[Reranker]
+    A -->|image| D
+    D -->|ranked keywords with confidence %| E[Review]
 ```
