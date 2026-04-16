@@ -7,7 +7,7 @@ import { useState, useRef, useEffect } from 'react'
 
 /** Shown in copy as the prediction API host (same default as `App` `VITE_API_URL`). */
 const API_HINT =
-  import.meta.env.VITE_API_URL || 'http://localhost:8000'
+  import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
 /**
  * @param {object} props

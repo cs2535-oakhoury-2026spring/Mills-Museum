@@ -14,7 +14,7 @@ import { ProcessingDisplay } from './components/ProcessingDisplay'
 import { mapApiKeyword } from './utils/keywordAdapters'
 
 /** Backend base URL (override with `VITE_API_URL`). */
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
 export default function App() {
   const [phase, setPhase] = useState('upload')
