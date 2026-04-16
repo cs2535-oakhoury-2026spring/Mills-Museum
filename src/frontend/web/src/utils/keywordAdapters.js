@@ -87,6 +87,8 @@ export function mapApiKeywordProgressive(kw) {
         ? Math.round(score * 10) / 10
         : null,
     selected: true,
+    scopeNote: kw.scope_note ?? '',
+    hierarchy: kw.hierarchy ?? '',
   }
 }
 
