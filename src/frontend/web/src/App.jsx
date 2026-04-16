@@ -2,16 +2,17 @@
  * Root application shell for the MCAM Keyword Generator.
  *
  * Drives a three-phase flow: `upload` → `processing` → `result` (review).
- * Each selected image is POSTed to `/predict` with `term_count`; responses are
- * normalized via `mapApiKeyword`. Object URLs for previews are revoked when
- * resetting or when the whole batch fails to avoid leaks.
+ * Each selected image is POSTed to `/predict` which returns unscored keywords
+ * immediately. Reranking scores are then polled progressively via
+ * `/predict-status/{job_id}` so users can begin selecting keywords right away.
  */
 import { useState, useCallback } from 'react'
 import logoUrl from '../../../../media/logo.png'
 import UploadScreen from './components/UploadScreen'
 import ReviewView from './components/ReviewView'
 import { ProcessingDisplay } from './components/ProcessingDisplay'
-import { mapApiKeyword } from './utils/keywordAdapters'
+import { mapApiKeywordProgressive } from './utils/keywordAdapters'
+import { useRerankPolling } from './hooks/useRerankPolling'
 
 /** Backend base URL (override with `VITE_API_URL`). */
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
@@ -33,9 +34,99 @@ export default function App() {
   }, [])
 
   /**
+   * Poll update: merge new scores into existing keywords while preserving
+   * the user's `selected` state (match by keyword text).
+   */
+  const handlePollUpdate = useCallback((resultIdx, data) => {
+    setResults((prev) => {
+      const copy = [...prev]
+      const row = copy[resultIdx]
+      if (row?.type !== 'success') return prev
+
+      const existing = row.keywords
+      const updatedKeywords = (data.keywords || [])
+        .map(mapApiKeywordProgressive)
+        .filter((k) => k.text)
+        .map((mapped) => {
+          const match = existing.find((e) => e.text === mapped.text)
+          return {
+            ...mapped,
+            selected: match ? match.selected : true,
+          }
+        })
+
+      copy[resultIdx] = {
+        ...row,
+        keywords: updatedKeywords,
+        rerankProgress: {
+          completed: data.completed,
+          total: data.total,
+          status: data.status,
+        },
+      }
+      return copy
+    })
+  }, [])
+
+  const handlePollComplete = useCallback((resultIdx, data) => {
+    setResults((prev) => {
+      const copy = [...prev]
+      const row = copy[resultIdx]
+      if (row?.type !== 'success') return prev
+
+      const existing = row.keywords
+      const finalKeywords = (data.keywords || [])
+        .map(mapApiKeywordProgressive)
+        .filter((k) => k.text)
+        .map((mapped) => {
+          const match = existing.find((e) => e.text === mapped.text)
+          return {
+            ...mapped,
+            selected: match ? match.selected : true,
+          }
+        })
+
+      copy[resultIdx] = {
+        ...row,
+        keywords: finalKeywords,
+        rerankProgress: {
+          completed: data.total,
+          total: data.total,
+          status: 'done',
+        },
+      }
+      return copy
+    })
+  }, [])
+
+  const handlePollError = useCallback((resultIdx, errorMsg) => {
+    setResults((prev) => {
+      const copy = [...prev]
+      const row = copy[resultIdx]
+      if (row?.type !== 'success') return prev
+      copy[resultIdx] = {
+        ...row,
+        rerankProgress: {
+          ...row.rerankProgress,
+          status: 'error',
+          error: errorMsg,
+        },
+      }
+      return copy
+    })
+  }, [])
+
+  const { startPolling, stopAll } = useRerankPolling(
+    API_URL,
+    handlePollUpdate,
+    handlePollComplete,
+    handlePollError,
+  )
+
+  /**
    * Sequentially uploads each file to `/predict`, updates the processing UI,
-   * and collects success or error rows. If every request fails, revokes URLs
-   * and returns to upload with `batchError`; otherwise switches to `result`.
+   * and collects success or error rows. `/predict` now returns immediately
+   * with unscored keywords + a job_id; reranking scores arrive via polling.
    *
    * @param {File[]} files
    * @param {number} [termCount=20] Clamped to 1–50 server-side style in this handler.
@@ -58,7 +149,6 @@ export default function App() {
       const previewUrl = URL.createObjectURL(file)
       setProcessingPreviewUrl(previewUrl)
       setProcessingLabel(`Processing image ${i + 1} of ${files.length}`)
-      const t0 = performance.now()
       try {
         const formData = new FormData()
         formData.append('file', file)
@@ -70,15 +160,19 @@ export default function App() {
         })
         if (!res.ok) throw new Error(`Server error: ${res.status}`)
         const data = await res.json()
-        const t1 = performance.now()
         acc.push({
           type: 'success',
           file,
           previewUrl,
           keywords: (data.keywords || [])
-            .map(mapApiKeyword)
+            .map(mapApiKeywordProgressive)
             .filter((k) => k.text),
-          processingTime: (t1 - t0) / 1000,
+          jobId: data.job_id,
+          rerankProgress: {
+            completed: 0,
+            total: (data.keywords || []).length,
+            status: 'reranking',
+          },
         })
       } catch (err) {
         console.error(err)
@@ -105,10 +199,17 @@ export default function App() {
     setResults(acc)
     setResultIndex(0)
     setPhase('result')
+
+    // Start polling for each successful result's reranking progress
+    ok.forEach((result) => {
+      const actualIdx = acc.indexOf(result)
+      startPolling(result.jobId, actualIdx)
+    })
   }
 
-  /** Clears results, revokes preview URLs, and returns to the upload phase. */
+  /** Clears results, revokes preview URLs, stops polling, and returns to the upload phase. */
   const handleUploadNew = () => {
+    stopAll()
     revokeResultUrls(results)
     setResults([])
     setResultIndex(0)
@@ -119,7 +220,7 @@ export default function App() {
   /**
    * Persists edited keywords for one successful result row (ReviewView).
    * @param {number} idx
-   * @param {Array<{ text: string, confidence: number, [key: string]: unknown }>} nextKeywords UI keyword objects (same shape as `mapApiKeyword` output).
+   * @param {Array<{ text: string, confidence: number|null, [key: string]: unknown }>} nextKeywords
    */
   const handleKeywordsChange = (idx, nextKeywords) => {
     setResults((prev) => {

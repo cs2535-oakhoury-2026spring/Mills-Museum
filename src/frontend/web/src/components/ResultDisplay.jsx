@@ -1,4 +1,4 @@
-import { motion } from 'motion/react'
+import { motion, LayoutGroup } from 'motion/react'
 import { useState } from 'react'
 import { ZoomIn, Copy, Check, FileText, Search } from 'lucide-react'
 import { ImageModal } from './ImageModal'
@@ -25,6 +25,7 @@ export function ResultDisplay({
   keywords, // {text, confidence, selected}
   onKeywordsChange,
   fileName,
+  rerankProgress,
 }) {
   const [copied, setCopied] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -60,7 +61,9 @@ export function ResultDisplay({
   }
 
   const handleExportText = () => {
-    const lines = included.map((k) => `  - ${k.text} (${k.confidence}%)`)
+    const lines = included.map((k) =>
+      k.confidence !== null ? `  - ${k.text} (${k.confidence}%)` : `  - ${k.text}`,
+    )
     const label = stripFileExtension(fileName) || 'keywords'
     const text = `${label}
 
@@ -183,6 +186,31 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
               </div>
             </div>
 
+            {/* Reranking progress bar — shown while scoring is in progress */}
+            {rerankProgress && rerankProgress.status !== 'done' && (
+              <div className="mb-3">
+                <div className="flex items-center justify-between text-xs text-mcam-muted mb-1">
+                  <span>
+                    {rerankProgress.status === 'error'
+                      ? 'Scoring interrupted — some confidence scores may be missing'
+                      : 'Scoring keywords\u2026'}
+                  </span>
+                  <span className="tabular-nums font-medium">
+                    {rerankProgress.completed} / {rerankProgress.total}
+                  </span>
+                </div>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-mcam-surface border border-mcam-navy/10">
+                  <motion.div
+                    className={`h-full ${rerankProgress.status === 'error' ? 'bg-red-400' : 'bg-mcam-blue'}`}
+                    animate={{
+                      width: `${rerankProgress.total > 0 ? (rerankProgress.completed / rerankProgress.total) * 100 : 0}%`,
+                    }}
+                    transition={{ duration: 0.3, ease: 'easeOut' }}
+                  />
+                </div>
+              </div>
+            )}
+
             {/* Accessible label for the keyword filter input. */}
             <label className="sr-only" htmlFor="kw-search">
               Search keywords
@@ -205,6 +233,7 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
 
             {/* Scrollable keyword tile list; each tile toggles inclusion for export. */}
             <div className="min-h-0 flex-1 overflow-y-auto rounded-md border border-mcam-navy/15 bg-mcam-surface p-2.5">
+              <LayoutGroup>
               <div className="grid grid-cols-2 gap-2 content-start">
                 {filteredWithIndex.map(({ k: keyword, i: globalIndex }) => {
                   const on = isKeywordIncluded(keyword)
@@ -212,11 +241,14 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
                   return (
                     /* Tile is a label so clicking anywhere toggles its hidden checkbox. */
                     <motion.label
-                      key={`${keyword.text}-${globalIndex}`}
+                      key={keyword.text}
+                      layoutId={keyword.text}
+                      layout
                       htmlFor={inputId}
                       title={keyword.text}
                       initial={false}
                       animate={{ opacity: 1, scale: 1 }}
+                      transition={{ layout: { type: 'spring', damping: 25, stiffness: 300 } }}
                       className={`inline-flex w-full min-w-0 cursor-pointer items-center gap-2 rounded-md border border-[#2f5a94]/60 bg-[#3b6db5] px-3 py-2 text-left text-xs font-semibold !text-white shadow-sm transition hover:brightness-105 focus-within:brightness-105 ${
                         on
                           ? 'ring-2 ring-white/90 ring-offset-2 ring-offset-mcam-surface'
@@ -258,14 +290,27 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
                       {/* Confidence badge styled by confidence score bucket. */}
                       <span
                         className="inline-flex min-w-[2.75rem] shrink-0 items-center justify-center self-center rounded-md border border-solid px-1.5 py-0.5 text-[11px] font-bold tabular-nums leading-none shadow-sm"
-                        style={getConfidenceBadgeStyle(keyword.confidence)}
+                        style={
+                          keyword.confidence !== null
+                            ? getConfidenceBadgeStyle(keyword.confidence)
+                            : {
+                                background: 'rgba(255,255,255,0.6)',
+                                borderColor: 'rgba(255,255,255,0.4)',
+                                color: '#64748b',
+                              }
+                        }
                       >
-                        {keyword.confidence}%
+                        {keyword.confidence !== null ? (
+                          `${keyword.confidence}%`
+                        ) : (
+                          <span className="animate-pulse">&hellip;</span>
+                        )}
                       </span>
                     </motion.label>
                   )
                 })}
               </div>
+              </LayoutGroup>
             </div>
           </motion.div>
         </div>

@@ -155,6 +155,7 @@ export default function ReviewView({
           imageSrc={current.previewUrl}
           onKeywordsChange={(next) => onKeywordsChange(resultIndex, next)}
           fileName={current.file.name}
+          rerankProgress={current.rerankProgress}
         />
       ) : null}
     </div>

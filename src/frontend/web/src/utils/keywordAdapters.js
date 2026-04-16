@@ -65,6 +65,32 @@ export function mapApiKeyword(kw) {
 }
 
 /**
+ * Progressive variant: returns `confidence: null` when the backend hasn't
+ * scored the keyword yet (score is null/undefined). This signals the UI
+ * to show a placeholder instead of "0%".
+ */
+export function mapApiKeywordProgressive(kw) {
+  const rawScore = kw.score
+  const hasScore = rawScore !== null && rawScore !== undefined
+  const score = hasScore
+    ? typeof rawScore === 'number'
+      ? rawScore
+      : parseFloat(rawScore)
+    : null
+
+  const rawText = kw.label ?? kw.text ?? ''
+
+  return {
+    text: stripKeywordDefinition(rawText),
+    confidence:
+      score !== null && Number.isFinite(score)
+        ? Math.round(score * 10) / 10
+        : null,
+    selected: true,
+  }
+}
+
+/**
  * Keyword is included in exports when `selected` is not explicitly false.
  * This makes inclusion the default, even if older data lacks a `selected` field.
  */
