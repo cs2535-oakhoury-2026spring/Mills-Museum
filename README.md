@@ -91,8 +91,11 @@ flowchart TD
 
     subgraph Request["Per Request (via ngrok → Google Colab)"]
         C["User uploads image\n+ keyword count"] -->|"Qwen3-VL-Embedding-2B"| D["Image vector embedding"]
+        C -->|"LLaVA v1.6 7B\nvia llama.cpp"| H["Artwork description\n(streamed to UI)"]
+        H -->|"embed description text"| I["Text vector embedding"]
         D -->|"MMR search\n4× candidates for diversity"| B
-        B --> E["Candidate AAT terms"]
+        I -->|"MMR search\nquery expansion"| B
+        B --> E["Candidate AAT terms\n(image + text combined)"]
         E -->|"Qwen3-VL-Reranker-2B\nscores image + term pairs"| F["Ranked keywords\nwith confidence %"]
         F --> G["React frontend\nuser reviews & exports"]
     end
@@ -100,7 +103,10 @@ flowchart TD
 ```mermaid
 flowchart TD
     A[Artwork] -->|image| B[Embedder]
+    A -->|image| H[Descriptor]
+    H -->|artwork description| I[Embedding]
     B -->|image vector| C[(Vector DB 44k AAT Terms)]
+    I -->|text vector| C
     C -->|top candidates| D[Reranker]
     A -->|image| D
     D -->|ranked keywords with confidence %| E[Review]
