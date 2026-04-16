@@ -269,7 +269,7 @@ export default function App() {
       </header>
 
       {/* Primary content: exactly one of upload hero + screen | processing | review */}
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 py-8 sm:px-6 sm:py-10">
+      <main className="mx-auto flex w-full flex-1 flex-col px-4 py-6 sm:px-8">
         {/* Hero blurb only on upload; processing/result have their own headings */}
         {phase === 'upload' ? (
           <div className="mb-8 text-center">
@@ -286,7 +286,7 @@ export default function App() {
         <div className="flex w-full min-w-0 flex-1 justify-center">
           {/* Upload: file queue + generate */}
           {phase === 'upload' ? (
-            <div className="mx-auto w-full min-w-0 max-w-6xl shrink-0">
+            <div className="mx-auto w-full min-w-0 max-w-4xl shrink-0">
               <UploadScreen
                 onRequestProcess={handleRequestProcess}
                 errorMessage={batchError}
