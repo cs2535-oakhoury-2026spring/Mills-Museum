@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react'
 import { useState, useEffect, useRef } from 'react'
-import { ZoomIn, Copy, Check, FileText, Search, ChevronDown, ChevronLeft, ChevronRight, Layers } from 'lucide-react'
+import { ZoomIn, Copy, Check, FileText, Search, ChevronDown, ChevronLeft, ChevronRight, Layers, Thermometer } from 'lucide-react'
 import { ImageModal } from './ImageModal'
 import {
   getAccessionNumberFromTitle,
@@ -8,7 +8,7 @@ import {
   stripFileExtension,
   downloadTextFile,
 } from '../utils/keywordAdapters'
-import { getConfidenceBadgeStyle } from '../utils/confidenceBadgeStyle'
+import { getConfidenceBadgeStyle, getHeatmapTileStyle } from '../utils/confidenceBadgeStyle'
 import { reviewActionButtonSm, reviewActionButtonLg } from '../utils/reviewActionStyles'
 
 /**
@@ -38,6 +38,7 @@ export function ResultDisplay({
   const [searchQuery, setSearchQuery] = useState('')
   const [expandedIndex, setExpandedIndex] = useState(null)
   const [groupByHierarchy, setGroupByHierarchy] = useState(false)
+  const [heatmapMode, setHeatmapMode] = useState(false)
 
   // Reset transient UI state when the image changes
   const prevFileNameRef = useRef(fileName)
@@ -113,17 +114,26 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
     const hasScopeNote = Boolean(keyword.scopeNote)
     const isExpanded = expandedIndex === globalIndex
 
+    // Heatmap: tint tile background by confidence when enabled
+    const heatStyle =
+      heatmapMode ? getHeatmapTileStyle(keyword.confidence) : null
+
     return (
       <div key={`${globalIndex}-${keyword.text}`} className="flex flex-col">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.15 }}
-          className={`inline-flex w-full min-w-0 items-center gap-1.5 rounded border border-[#2f5a94]/50 bg-[#3b6db5] px-2 py-1.5 text-left text-white shadow-sm transition hover:brightness-110 ${
+          className={`inline-flex w-full min-w-0 items-center gap-1.5 rounded border px-2 py-1.5 text-left text-white shadow-sm transition hover:brightness-110 ${
             on
               ? 'ring-1 ring-white/80 ring-offset-1 ring-offset-mcam-surface'
               : 'opacity-60'
           } ${isExpanded ? 'rounded-b-none' : ''}`}
+          style={
+            heatStyle
+              ? { backgroundColor: heatStyle.backgroundColor, borderColor: heatStyle.borderColor }
+              : { backgroundColor: '#3b6db5', borderColor: 'rgba(47,90,148,0.5)' }
+          }
         >
           {/* Checkbox area — click target for toggling inclusion */}
           <label htmlFor={inputId} className="flex shrink-0 cursor-pointer items-center">
@@ -200,7 +210,14 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
               transition={{ duration: 0.15 }}
               className="overflow-hidden"
             >
-              <div className="rounded-b border border-t-0 border-[#2f5a94]/30 bg-[#2a5a9e] px-2.5 py-2 text-[11px] leading-relaxed text-white/90">
+              <div
+                className="rounded-b border border-t-0 px-2.5 py-2 text-[11px] leading-relaxed text-white/90"
+                style={
+                  heatStyle
+                    ? { backgroundColor: heatStyle.backgroundColor, borderColor: heatStyle.borderColor, filter: 'brightness(0.85)' }
+                    : { backgroundColor: '#2a5a9e', borderColor: 'rgba(47,90,148,0.3)' }
+                }
+              >
                 {keyword.scopeNote}
               </div>
             </motion.div>
@@ -281,68 +298,71 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
               </div>
             </motion.div>
 
-            {/* Navigation + batch actions (moved from top bar) */}
+            {/* Navigation card */}
             {nav ? (
-              <div className="flex flex-col gap-2 rounded-lg border border-mcam-navy/15 bg-white px-3 py-2.5 shadow-sm">
-                {/* Image navigation */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={nav.onPrev}
-                      disabled={!nav.canGoPrev}
-                      className="flex h-7 w-7 items-center justify-center rounded-md border border-mcam-navy/20 bg-mcam-surface text-mcam-navy transition-all hover:border-mcam-blue hover:text-mcam-blue disabled:cursor-not-allowed disabled:border-mcam-navy/10 disabled:text-mcam-muted"
-                      aria-label="Previous image"
-                    >
-                      <ChevronLeft size={14} />
-                    </button>
-                    <span className="text-sm tabular-nums text-mcam-navy">
-                      <span className="font-semibold">{nav.resultCount === 0 ? '\u2014' : `${nav.resultIndex + 1}`}</span>
-                      <span className="text-mcam-muted"> / {nav.resultCount}</span>
-                    </span>
-                    <button
-                      onClick={nav.onNext}
-                      disabled={!nav.canGoNext}
-                      className="flex h-7 w-7 items-center justify-center rounded-md border border-mcam-navy/20 bg-mcam-surface text-mcam-navy transition-all hover:border-mcam-blue hover:text-mcam-blue disabled:cursor-not-allowed disabled:border-mcam-navy/10 disabled:text-mcam-muted"
-                      aria-label="Next image"
-                    >
-                      <ChevronRight size={14} />
-                    </button>
-                  </div>
-
-                  {nav.errorCount > 0 ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-800 ring-1 ring-red-200">
-                      {nav.errorCount} failed
-                    </span>
-                  ) : null}
-                </div>
-
-                {/* Batch export + upload new */}
-                <div className="flex flex-wrap items-center gap-1.5">
+              <div className="flex items-center justify-between gap-2 rounded-lg border border-mcam-navy/15 bg-white px-3 py-2.5 shadow-sm">
+                <div className="flex items-center gap-2">
                   <button
-                    type="button"
-                    onClick={nav.onExportAll}
-                    className={reviewActionButtonLg}
+                    onClick={nav.onPrev}
+                    disabled={!nav.canGoPrev}
+                    className="flex h-7 w-7 items-center justify-center rounded-md border border-mcam-navy/20 bg-mcam-surface text-mcam-navy transition-all hover:border-mcam-blue hover:text-mcam-blue disabled:cursor-not-allowed disabled:border-mcam-navy/10 disabled:text-mcam-muted"
+                    aria-label="Previous image"
                   >
-                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
-                    </svg>
-                    Export all
+                    <ChevronLeft size={14} />
                   </button>
+                  <span className="text-sm tabular-nums text-mcam-navy">
+                    <span className="font-semibold">{nav.resultCount === 0 ? '\u2014' : `${nav.resultIndex + 1}`}</span>
+                    <span className="text-mcam-muted"> / {nav.resultCount}</span>
+                  </span>
                   <button
-                    type="button"
-                    onClick={nav.onExportCsv}
-                    className={reviewActionButtonLg}
+                    onClick={nav.onNext}
+                    disabled={!nav.canGoNext}
+                    className="flex h-7 w-7 items-center justify-center rounded-md border border-mcam-navy/20 bg-mcam-surface text-mcam-navy transition-all hover:border-mcam-blue hover:text-mcam-blue disabled:cursor-not-allowed disabled:border-mcam-navy/10 disabled:text-mcam-muted"
+                    aria-label="Next image"
                   >
-                    CSV
-                  </button>
-                  <button
-                    type="button"
-                    onClick={nav.onUploadNew}
-                    className={reviewActionButtonLg}
-                  >
-                    Upload new
+                    <ChevronRight size={14} />
                   </button>
                 </div>
+
+                <span className="min-w-0 truncate text-xs font-semibold text-mcam-navy" title={getAccessionNumberFromTitle(fileName)}>
+                  {getAccessionNumberFromTitle(fileName)}
+                </span>
+
+                {nav.errorCount > 0 ? (
+                  <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-800 ring-1 ring-red-200">
+                    {nav.errorCount} failed
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
+
+            {/* Export + upload new (separate card) */}
+            {nav ? (
+              <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-mcam-navy/15 bg-white px-3 py-2.5 shadow-sm">
+                <button
+                  type="button"
+                  onClick={nav.onExportAll}
+                  className={reviewActionButtonLg}
+                >
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                  </svg>
+                  Export all
+                </button>
+                <button
+                  type="button"
+                  onClick={nav.onExportCsv}
+                  className={reviewActionButtonLg}
+                >
+                  CSV
+                </button>
+                <button
+                  type="button"
+                  onClick={nav.onUploadNew}
+                  className={reviewActionButtonLg}
+                >
+                  Upload new
+                </button>
               </div>
             ) : null}
           </div>
@@ -368,6 +388,15 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
                 >
                   <Layers className="h-3 w-3" />
                   Group
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHeatmapMode((v) => !v)}
+                  className={`${reviewActionButtonSm} ${heatmapMode ? '!bg-[#2a4f8a] ring-1 ring-white/40' : ''}`}
+                  title={heatmapMode ? 'Uniform tile colors' : 'Color tiles by confidence'}
+                >
+                  <Thermometer className="h-3 w-3" />
+                  Heatmap
                 </button>
                 <button
                   type="button"

@@ -1,9 +1,11 @@
 /**
- * Confidence badge color ramp.
+ * Confidence color utilities.
  *
- * Components call `getConfidenceBadgeStyle(confidence)` and receive an inline
- * style object. Keeping the color math here prevents duplicated magic numbers
- * and makes visual tweaks easy.
+ * - `getConfidenceBadgeStyle(confidence)` — small badge inside each tile.
+ * - `getHeatmapTileStyle(confidence)` — full-tile background tint.
+ *
+ * Keeping the color math here prevents duplicated magic numbers and makes
+ * visual tweaks easy.
  */
 const L = (a, b, t) => a + (b - a) * t
 
@@ -58,5 +60,32 @@ export function getConfidenceBadgeStyle(confidence) {
     backgroundColor: badgeBg,
     borderColor: badgeBorder,
     color: badgeFg,
+  }
+}
+
+// ── Heatmap tile background ──
+// Low confidence → washed-out steel blue, high → deep navy.
+// Scores above ~50% are rare in practice, so the ramp saturates at 50%.
+// White text stays readable across the entire range.
+const TILE_LOW = parseHex('#7497b8')   // soft steel-blue  (low confidence)
+const TILE_HIGH = parseHex('#152c50')  // deep navy         (high confidence)
+
+/**
+ * Returns inline styles for a keyword tile background in heatmap mode.
+ * `confidence` is 0-100 but the ramp saturates at 50 (scores above 50 are
+ * visually identical). Returns `null` when confidence is missing (still scoring).
+ */
+export function getHeatmapTileStyle(confidence) {
+  if (confidence === null || confidence === undefined) return null
+
+  // Map 0-50 → 0-1, clamp above 50 to 1
+  const t = Math.min(1, Math.max(0, Number(confidence)) / 50)
+
+  const bg = mixRgb(TILE_LOW, TILE_HIGH, t)
+  const border = mixRgb(bg, parseHex('#0d1f3a'), 0.3)
+
+  return {
+    backgroundColor: rgbStr(bg),
+    borderColor: rgbStr(border),
   }
 }

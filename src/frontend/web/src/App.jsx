@@ -131,8 +131,9 @@ export default function App() {
    * @param {File[]} files
    * @param {number|object} termCountOrMap - Either a number (simple mode) or
    *   a hierarchy counts map like { "Materials": 3, "Color": 2 } (per-hierarchy mode).
+   * @param {number} [lambdaMult] - MMR diversity parameter (0-1). Omit to use server default.
    */
-  const handleRequestProcess = async (files, termCountOrMap = 20) => {
+  const handleRequestProcess = async (files, termCountOrMap = 20, lambdaMult) => {
     if (!files.length) return
     setBatchError('')
     setPhase('processing')
@@ -163,6 +164,9 @@ export default function App() {
           formData.append('hierarchy_counts', JSON.stringify(termCountOrMap))
         } else {
           formData.append('term_count', String(clampedTermCount))
+        }
+        if (lambdaMult !== undefined && lambdaMult !== null) {
+          formData.append('lambda_mult', String(lambdaMult))
         }
         const res = await fetch(`${API_URL}/predict`, {
           method: 'POST',
@@ -297,7 +301,7 @@ export default function App() {
         <div className="flex w-full min-w-0 flex-1 justify-center">
           {/* Upload: file queue + generate */}
           {phase === 'upload' ? (
-            <div className="mx-auto w-full min-w-0 max-w-4xl shrink-0">
+            <div className="mx-auto w-full min-w-0 max-w-6xl shrink-0">
               <UploadScreen
                 onRequestProcess={handleRequestProcess}
                 errorMessage={batchError}
