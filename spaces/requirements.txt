@@ -1,0 +1,17 @@
+torch
+transformers
+chromadb
+datasets
+qwen-vl-utils
+hf_xet
+langchain-chroma
+langchain-core
+Pillow
+huggingface-hub
+fastapi
+uvicorn
+python-multipart
+sentencepiece
+open_clip_torch
+protobuf
+tqdm

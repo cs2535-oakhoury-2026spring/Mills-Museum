@@ -1,3 +1,12 @@
+---
+title: MCAM Art Keyword Generator
+emoji: 🎨
+colorFrom: blue
+colorTo: red
+sdk: docker
+pinned: false
+---
+
 # Mills Art Museum Project: Generating AAT Keywords for the Museum Collection
 
 
