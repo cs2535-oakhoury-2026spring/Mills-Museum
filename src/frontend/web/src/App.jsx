@@ -2,9 +2,9 @@
  * Root application shell for the MCAM Keyword Generator.
  *
  * Drives a three-phase flow: `upload` → `processing` → `result` (review).
- * Each selected image is POSTed to `/predict` which returns unscored keywords
- * immediately. Reranking scores are then polled progressively via
- * `/predict-status/{job_id}` so users can begin selecting keywords right away.
+ * Each selected image is POSTed to `/predict-stream` (SSE with VLM description
+ * + query expansion) or falls back to `/predict` if the captioner isn't available.
+ * Reranking scores are then polled progressively via `/predict-status/{job_id}`.
  */
 import { useState, useCallback } from 'react'
 import logoUrl from '../../../../media/logo.png'
@@ -24,6 +24,9 @@ export default function App() {
   const [processingProgress, setProcessingProgress] = useState(0)
   const [processingPreviewUrl, setProcessingPreviewUrl] = useState('')
   const [processingLabel, setProcessingLabel] = useState('')
+  const [processingDescription, setProcessingDescription] = useState('')
+  const [descriptionDone, setDescriptionDone] = useState(false)
+  const [processingStatus, setProcessingStatus] = useState('')
   const [batchError, setBatchError] = useState('')
 
   /** Revokes blob URLs created for result thumbnails (call before discarding rows). */
@@ -124,14 +127,83 @@ export default function App() {
   )
 
   /**
-   * Sequentially uploads each file to `/predict`, updates the processing UI,
-   * and collects success or error rows. `/predict` now returns immediately
-   * with unscored keywords + a job_id; reranking scores arrive via polling.
+   * Process a single file via the streaming endpoint.
+   * Returns the parsed result data or null on SSE-level failure.
+   */
+  const processFileStream = async (formData) => {
+    const res = await fetch(`${API_URL}/predict-stream`, {
+      method: 'POST',
+      headers: { 'ngrok-skip-browser-warning': 'true' },
+      body: formData,
+    })
+
+    // 503 = captioner not loaded → caller should fall back to /predict
+    if (res.status === 503) return null
+
+    if (!res.ok) throw new Error(`Server error: ${res.status}`)
+
+    const reader = res.body.getReader()
+    const decoder = new TextDecoder()
+    let resultData = null
+    let buffer = ''
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+
+      const lines = buffer.split('\n')
+      // Keep the last potentially incomplete line in the buffer
+      buffer = lines.pop() || ''
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue
+        const payload = line.slice(6).trim()
+        if (payload === '[DONE]') continue
+        try {
+          const msg = JSON.parse(payload)
+          if (msg.type === 'description') {
+            setProcessingDescription((prev) => prev + msg.token)
+          } else if (msg.type === 'description_done') {
+            setDescriptionDone(true)
+          } else if (msg.type === 'status') {
+            setProcessingStatus(msg.message)
+          } else if (msg.type === 'result') {
+            resultData = msg
+          } else if (msg.type === 'error') {
+            throw new Error(msg.message)
+          }
+        } catch (parseErr) {
+          // Skip malformed SSE lines
+          if (parseErr.message && !parseErr.message.includes('JSON')) throw parseErr
+        }
+      }
+    }
+
+    return resultData
+  }
+
+  /**
+   * Process a single file via the non-streaming endpoint.
+   */
+  const processFileFallback = async (formData) => {
+    const res = await fetch(`${API_URL}/predict`, {
+      method: 'POST',
+      headers: { 'ngrok-skip-browser-warning': 'true' },
+      body: formData,
+    })
+    if (!res.ok) throw new Error(`Server error: ${res.status}`)
+    const data = await res.json()
+    return { job_id: data.job_id, keywords: data.keywords }
+  }
+
+  /**
+   * Sequentially uploads each file, using `/predict-stream` (SSE with VLM
+   * description) when available, falling back to `/predict` otherwise.
    *
    * @param {File[]} files
-   * @param {number|object} termCountOrMap - Either a number (simple mode) or
-   *   a hierarchy counts map like { "Materials": 3, "Color": 2 } (per-hierarchy mode).
-   * @param {number} [lambdaMult] - MMR diversity parameter (0-1). Omit to use server default.
+   * @param {number|object} termCountOrMap
+   * @param {number} [lambdaMult]
    */
   const handleRequestProcess = async (files, termCountOrMap = 20, lambdaMult) => {
     if (!files.length) return
@@ -139,6 +211,9 @@ export default function App() {
     setPhase('processing')
     setProcessingProgress(0)
     setProcessingPreviewUrl('')
+    setProcessingDescription('')
+    setDescriptionDone(false)
+    setProcessingStatus('')
     const acc = []
 
     const isPerHierarchy =
@@ -152,11 +227,18 @@ export default function App() {
           return Math.max(1, Math.min(50, Math.round(n)))
         })()
 
+    // Track whether streaming is available (discovered on first file)
+    let streamAvailable = true
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i]
       const previewUrl = URL.createObjectURL(file)
       setProcessingPreviewUrl(previewUrl)
       setProcessingLabel(`Processing image ${i + 1} of ${files.length}`)
+      setProcessingDescription('')
+      setDescriptionDone(false)
+      setProcessingStatus('')
+
       try {
         const formData = new FormData()
         formData.append('file', file)
@@ -168,24 +250,45 @@ export default function App() {
         if (lambdaMult !== undefined && lambdaMult !== null) {
           formData.append('lambda_mult', String(lambdaMult))
         }
-        const res = await fetch(`${API_URL}/predict`, {
-          method: 'POST',
-          headers: { 'ngrok-skip-browser-warning': 'true' },
-          body: formData,
-        })
-        if (!res.ok) throw new Error(`Server error: ${res.status}`)
-        const data = await res.json()
+
+        let resultData = null
+
+        // Try streaming endpoint first
+        if (streamAvailable) {
+          resultData = await processFileStream(formData)
+          if (resultData === null) {
+            // Captioner not available — fall back for this and all subsequent files
+            streamAvailable = false
+          }
+        }
+
+        // Fall back to non-streaming endpoint
+        if (!resultData) {
+          // Need a fresh FormData since the stream may have consumed the first one
+          const fallbackForm = new FormData()
+          fallbackForm.append('file', file)
+          if (isPerHierarchy) {
+            fallbackForm.append('hierarchy_counts', JSON.stringify(termCountOrMap))
+          } else {
+            fallbackForm.append('term_count', String(clampedTermCount))
+          }
+          if (lambdaMult !== undefined && lambdaMult !== null) {
+            fallbackForm.append('lambda_mult', String(lambdaMult))
+          }
+          resultData = await processFileFallback(fallbackForm)
+        }
+
         acc.push({
           type: 'success',
           file,
           previewUrl,
-          keywords: (data.keywords || [])
+          keywords: (resultData.keywords || [])
             .map(mapApiKeywordProgressive)
             .filter((k) => k.text),
-          jobId: data.job_id,
+          jobId: resultData.job_id,
           rerankProgress: {
             completed: 0,
-            total: (data.keywords || []).length,
+            total: (resultData.keywords || []).length,
             status: 'reranking',
           },
         })
@@ -317,6 +420,9 @@ export default function App() {
               imageSrc={processingPreviewUrl}
               keywords={[]}
               statusLabel={processingLabel}
+              description={processingDescription}
+              descriptionDone={descriptionDone}
+              processingStatus={processingStatus}
             />
           ) : null}
 

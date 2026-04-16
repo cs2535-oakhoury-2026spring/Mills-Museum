@@ -1,19 +1,30 @@
 /**
  * Full-width processing card: image preview, optional staggered keyword chips,
- * and an animated progress bar. Used by `App` during batch inference (`keywords`
- * is typically empty until a future flow needs post-100% reveal).
+ * streamed AI description, and an animated progress bar. Used by `App` during
+ * batch inference.
  */
 import { motion } from 'motion/react'
 import { useEffect, useState } from 'react'
 
 /**
  * @param {object} props
- * @param {number} props.progress 0–100; drives bar width and “analyzing” vs “keywords” copy.
+ * @param {number} props.progress 0–100; drives bar width and "analyzing" vs "keywords" copy.
  * @param {string} [props.imageSrc] Object URL or URL string for the current file preview.
  * @param {Array<{ text: string, confidence: number }>} props.keywords Keyword chips revealed when `progress === 100`.
- * @param {string} [props.statusLabel] e.g. “Processing image 2 of 5”.
+ * @param {string} [props.statusLabel] e.g. "Processing image 2 of 5".
+ * @param {string} [props.description] Streamed AI description text (builds up token by token).
+ * @param {boolean} [props.descriptionDone] True once the description stream has finished.
+ * @param {string} [props.processingStatus] Backend status message (e.g. "Retrieving keywords...").
  */
-export function ProcessingDisplay({ progress, imageSrc, keywords, statusLabel }) {
+export function ProcessingDisplay({
+  progress,
+  imageSrc,
+  keywords,
+  statusLabel,
+  description,
+  descriptionDone,
+  processingStatus,
+}) {
   const [visibleKeywords, setVisibleKeywords] = useState([])
 
   // While work is in flight, hide chips. At 100%, append keywords one-by-one for a short staggered entrance.
@@ -57,11 +68,13 @@ export function ProcessingDisplay({ progress, imageSrc, keywords, statusLabel })
             )}
           </div>
 
-          {/* Status copy + keyword chips (`visibleKeywords` staggers in at 100%) */}
+          {/* Status copy + description + keyword chips */}
           <div className="min-w-0 flex-1">
             {progress < 100 ? (
               <div className="mb-4">
-                <p className="text-sm font-medium text-mcam-navy">Analyzing image…</p>
+                <p className="text-sm font-medium text-mcam-navy">
+                  {processingStatus || 'Analyzing image\u2026'}
+                </p>
                 <p className="mt-1 text-xs text-mcam-muted">
                   Calling the keyword model — this may take a moment per file.
                 </p>
@@ -74,6 +87,21 @@ export function ProcessingDisplay({ progress, imageSrc, keywords, statusLabel })
                 </p>
               </div>
             )}
+
+            {/* Streamed AI description */}
+            {description ? (
+              <div className="mb-4 rounded border border-mcam-navy/10 bg-mcam-surface/50 p-3">
+                <p className="mb-1 text-[11px] font-semibold tracking-wide text-mcam-blue uppercase">
+                  AI Description
+                </p>
+                <p className="text-xs leading-relaxed text-mcam-navy/80">
+                  {description}
+                  {!descriptionDone ? (
+                    <span className="ml-0.5 inline-block w-1.5 animate-pulse text-mcam-blue">|</span>
+                  ) : null}
+                </p>
+              </div>
+            ) : null}
 
             {/* Motion-wrapped pills; empty while predicting or when parent passes no `keywords` */}
             <div className="flex flex-wrap gap-2">
