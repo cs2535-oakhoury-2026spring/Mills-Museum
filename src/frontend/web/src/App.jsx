@@ -282,6 +282,7 @@ export default function App() {
           type: 'success',
           file,
           previewUrl,
+          description: processingDescription || '',
           keywords: (resultData.keywords || [])
             .map(mapApiKeywordProgressive)
             .filter((k) => k.text),

@@ -29,6 +29,7 @@ export function ResultDisplay({
   keywords, // {text, confidence, selected, scopeNote, hierarchy}
   onKeywordsChange,
   fileName,
+  description,
   rerankProgress,
   nav,
 }) {
@@ -38,6 +39,7 @@ export function ResultDisplay({
   const [expandedIndex, setExpandedIndex] = useState(null)
   const [groupByHierarchy, setGroupByHierarchy] = useState(false)
   const [heatmapMode, setHeatmapMode] = useState(false)
+  const [descriptionOpen, setDescriptionOpen] = useState(false)
 
   // Reset transient UI state when the image changes
   const prevFileNameRef = useRef(fileName)
@@ -48,6 +50,7 @@ export function ResultDisplay({
       setCopied(false)
       setIsModalOpen(false)
       setExpandedIndex(null)
+      setDescriptionOpen(false)
     }
   }, [fileName])
 
@@ -295,6 +298,37 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
                   {included.length}/{keywords.length} included
                 </p>
               </div>
+
+              {/* AI Description dropdown */}
+              {description ? (
+                <div className="mt-2 border-t border-mcam-navy/10 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setDescriptionOpen((v) => !v)}
+                    className="flex w-full items-center justify-between gap-2 text-xs font-medium text-mcam-muted hover:text-mcam-navy transition-colors"
+                  >
+                    <span>AI Description</span>
+                    <ChevronDown
+                      className={`h-3.5 w-3.5 transition-transform ${descriptionOpen ? 'rotate-180' : ''}`}
+                    />
+                  </button>
+                  <AnimatePresence>
+                    {descriptionOpen && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <p className="mt-1.5 text-xs leading-relaxed text-mcam-navy/80">
+                          {description}
+                        </p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              ) : null}
             </motion.div>
 
             {/* Navigation card */}
