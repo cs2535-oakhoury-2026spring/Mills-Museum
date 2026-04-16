@@ -123,9 +123,8 @@ function csvEscape(value) {
 export function buildCombinedExportText(results) {
   return results
     .map((r) => {
-      const raw = r.file?.name
-      const name =
-        raw != null && raw !== '' ? stripFileExtension(raw) : 'unknown'
+      const raw = r.file?.name ?? ''
+      const name = getAccessionNumberFromTitle(raw) || 'unknown'
       if (r.type === 'error') {
         return `${name}\n[Error] ${r.error}`
       }

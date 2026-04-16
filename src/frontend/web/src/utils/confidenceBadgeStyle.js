@@ -64,25 +64,30 @@ export function getConfidenceBadgeStyle(confidence) {
 }
 
 // ── Heatmap tile background ──
-// Low confidence → washed-out steel blue, high → deep navy.
-// Scores above ~50% are rare in practice, so the ramp saturates at 50%.
-// White text stays readable across the entire range.
-const TILE_LOW = parseHex('#7497b8')   // soft steel-blue  (low confidence)
-const TILE_HIGH = parseHex('#152c50')  // deep navy         (high confidence)
+// Low confidence → desaturated / muted blue, high → the normal bright tile blue.
+// Scores at or above HEATMAP_CEILING look identical to the default tile color.
+// Below that, tiles fade toward a muted gray-blue so low-confidence keywords
+// are visually distinct while white text stays readable everywhere.
+
+/** Confidence % at which tiles reach full (normal) color. Adjust as needed. */
+const HEATMAP_CEILING = 55
+
+const TILE_LOW = parseHex('#8da0b4')   // muted gray-blue   (0% confidence)
+const TILE_HIGH = parseHex('#3b6db5')  // normal tile blue   (HEATMAP_CEILING+)
 
 /**
  * Returns inline styles for a keyword tile background in heatmap mode.
- * `confidence` is 0-100 but the ramp saturates at 50 (scores above 50 are
- * visually identical). Returns `null` when confidence is missing (still scoring).
+ * `confidence` is 0-100 but the ramp saturates at `HEATMAP_CEILING`.
+ * Returns `null` when confidence is missing (still scoring).
  */
 export function getHeatmapTileStyle(confidence) {
   if (confidence === null || confidence === undefined) return null
 
-  // Map 0-50 → 0-1, clamp above 50 to 1
-  const t = Math.min(1, Math.max(0, Number(confidence)) / 50)
+  // Map 0 → HEATMAP_CEILING to 0 → 1, clamp above ceiling to 1
+  const t = Math.min(1, Math.max(0, Number(confidence)) / HEATMAP_CEILING)
 
   const bg = mixRgb(TILE_LOW, TILE_HIGH, t)
-  const border = mixRgb(bg, parseHex('#0d1f3a'), 0.3)
+  const border = mixRgb(bg, parseHex('#2f5a94'), 0.35)
 
   return {
     backgroundColor: rgbStr(bg),

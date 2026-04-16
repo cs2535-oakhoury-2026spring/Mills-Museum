@@ -5,7 +5,6 @@ import { ImageModal } from './ImageModal'
 import {
   getAccessionNumberFromTitle,
   isKeywordIncluded,
-  stripFileExtension,
   downloadTextFile,
 } from '../utils/keywordAdapters'
 import { getConfidenceBadgeStyle, getHeatmapTileStyle } from '../utils/confidenceBadgeStyle'
@@ -83,7 +82,7 @@ export function ResultDisplay({
     const lines = included.map((k) =>
       k.confidence !== null ? `  - ${k.text} (${k.confidence}%)` : `  - ${k.text}`,
     )
-    const label = stripFileExtension(fileName) || 'keywords'
+    const label = getAccessionNumberFromTitle(fileName) || 'keywords'
     const text = `${label}
 
 Keywords (${included.length}):
