@@ -16,13 +16,18 @@ const MIN_KEYWORD_COUNT = 1
 const MAX_KEYWORD_COUNT = 50
 
 const PER_HIERARCHY_MIN = 0
-const PER_HIERARCHY_MAX = 10
+const PER_HIERARCHY_MAX = 20
 const PER_HIERARCHY_DEFAULT = 2
 
 const DEFAULT_LAMBDA = 0.96
 const MIN_LAMBDA = 0
 const MAX_LAMBDA = 1
 const LAMBDA_STEP = 0.01
+
+const DEFAULT_QUERY_BIAS = 0.5
+const MIN_QUERY_BIAS = 0
+const MAX_QUERY_BIAS = 1
+const QUERY_BIAS_STEP = 0.01
 
 /**
  * @param {object} props
@@ -49,6 +54,10 @@ export default function UploadScreen({
   // ── MMR state ──
   const [lambdaMult, setLambdaMult] = useState(DEFAULT_LAMBDA)
   const [lambdaText, setLambdaText] = useState(String(DEFAULT_LAMBDA))
+
+  // ── Query bias state ──
+  const [queryBias, setQueryBias] = useState(DEFAULT_QUERY_BIAS)
+  const [queryBiasText, setQueryBiasText] = useState(String(DEFAULT_QUERY_BIAS))
 
   // ── Per-hierarchy state ──
   const [perHierarchyMode, setPerHierarchyMode] = useState(false)
@@ -89,17 +98,23 @@ export default function UploadScreen({
     return Math.max(MIN_LAMBDA, Math.min(MAX_LAMBDA, Math.round(parsed * 100) / 100))
   }
 
+  const clampQueryBias = (n) => {
+    const parsed = Number(n)
+    if (!Number.isFinite(parsed)) return DEFAULT_QUERY_BIAS
+    return Math.max(MIN_QUERY_BIAS, Math.min(MAX_QUERY_BIAS, Math.round(parsed * 100) / 100))
+  }
+
   const totalHierarchyCount = Object.values(hierarchyCounts).reduce(
     (sum, v) => sum + v,
     0,
   )
 
-  const stepHierarchy = (name, delta) => {
-    setHierarchyCounts((prev) => {
-      const cur = prev[name] ?? PER_HIERARCHY_DEFAULT
-      const next = Math.max(PER_HIERARCHY_MIN, Math.min(PER_HIERARCHY_MAX, cur + delta))
-      return { ...prev, [name]: next }
-    })
+  const setHierarchyCount = (name, value) => {
+    const parsed = Number(value)
+    const safe = Number.isFinite(parsed)
+      ? Math.max(PER_HIERARCHY_MIN, Math.min(PER_HIERARCHY_MAX, Math.round(parsed)))
+      : PER_HIERARCHY_DEFAULT
+    setHierarchyCounts((prev) => ({ ...prev, [name]: safe }))
   }
 
   // Object URL for the currently previewed file
@@ -147,9 +162,9 @@ export default function UploadScreen({
     setBusy(true)
     try {
       if (perHierarchyMode) {
-        await onRequestProcess(files, hierarchyCounts, lambdaMult)
+        await onRequestProcess(files, hierarchyCounts, lambdaMult, queryBias)
       } else {
-        await onRequestProcess(files, keywordCount, lambdaMult)
+        await onRequestProcess(files, keywordCount, lambdaMult, queryBias)
       }
     } finally {
       setBusy(false)
@@ -357,42 +372,35 @@ export default function UploadScreen({
               ) : null}
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-col gap-2">
               {hierarchyNames.map((name) => {
                 const count = hierarchyCounts[name] ?? PER_HIERARCHY_DEFAULT
                 const isZero = count === 0
                 return (
                   <div
                     key={name}
-                    className={`inline-flex items-center gap-0.5 rounded-lg border-2 px-1 py-0.5 transition-colors ${
-                      isZero
-                        ? 'border-mcam-navy/10 bg-mcam-surface/50 opacity-50'
-                        : 'border-mcam-navy/20 bg-white'
+                    className={`flex items-center gap-3 rounded-lg border border-mcam-navy/10 bg-white px-3 py-2 transition-opacity ${
+                      isZero ? 'opacity-50' : 'opacity-100'
                     }`}
                   >
-                    <button
-                      type="button"
-                      onClick={() => stepHierarchy(name, -1)}
-                      disabled={count <= PER_HIERARCHY_MIN}
-                      className="flex h-6 w-6 items-center justify-center rounded text-sm font-bold text-mcam-navy transition-colors hover:bg-mcam-surface disabled:cursor-not-allowed disabled:text-mcam-navy/20"
-                      aria-label={`Decrease ${name}`}
+                    <span
+                      className="w-28 shrink-0 truncate text-xs font-medium text-mcam-navy"
+                      title={name}
                     >
-                      &minus;
-                    </button>
-                    <span className="min-w-[1.25rem] text-center text-xs font-bold tabular-nums text-mcam-navy">
-                      {count}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => stepHierarchy(name, 1)}
-                      disabled={count >= PER_HIERARCHY_MAX}
-                      className="flex h-6 w-6 items-center justify-center rounded text-sm font-bold text-mcam-navy transition-colors hover:bg-mcam-surface disabled:cursor-not-allowed disabled:text-mcam-navy/20"
-                      aria-label={`Increase ${name}`}
-                    >
-                      +
-                    </button>
-                    <span className={`ml-0.5 mr-1 truncate text-[11px] font-medium leading-tight ${isZero ? 'text-mcam-muted' : 'text-mcam-navy'}`} title={name}>
                       {name}
+                    </span>
+                    <input
+                      type="range"
+                      min={PER_HIERARCHY_MIN}
+                      max={PER_HIERARCHY_MAX}
+                      step={1}
+                      value={count}
+                      onChange={(e) => setHierarchyCount(name, e.target.value)}
+                      className="h-2 w-full cursor-pointer accent-mcam-navy"
+                      aria-label={`${name} keyword count`}
+                    />
+                    <span className="w-8 shrink-0 rounded-md bg-mcam-surface px-2 py-0.5 text-center text-xs font-bold tabular-nums text-mcam-navy">
+                      {count}
                     </span>
                   </div>
                 )
@@ -400,10 +408,63 @@ export default function UploadScreen({
             </div>
 
             <p className="text-[11px] text-mcam-muted">
-              0-10 per hierarchy. Set 0 to exclude.
+              0-{PER_HIERARCHY_MAX} per hierarchy. Set 0 to exclude. Query Bias splits each hierarchy's count between image and description.
             </p>
           </div>
         ) : null}
+
+        {/* Query bias slider */}
+        <div className={cardClass}>
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-semibold text-mcam-navy" htmlFor="query-bias">
+              Query Bias
+            </label>
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] text-mcam-muted shrink-0">Image</span>
+              <input
+                id="query-bias"
+                type="range"
+                min={MIN_QUERY_BIAS}
+                max={MAX_QUERY_BIAS}
+                step={QUERY_BIAS_STEP}
+                value={queryBias}
+                onChange={(e) => {
+                  const next = clampQueryBias(e.target.value)
+                  setQueryBias(next)
+                  setQueryBiasText(String(next))
+                }}
+                className="h-2 w-full cursor-pointer accent-mcam-navy"
+                aria-label="Query bias"
+              />
+              <span className="text-[10px] text-mcam-muted shrink-0">Description</span>
+              <input
+                type="number"
+                min={MIN_QUERY_BIAS}
+                max={MAX_QUERY_BIAS}
+                step={QUERY_BIAS_STEP}
+                value={queryBiasText}
+                onChange={(e) => {
+                  const nextText = e.target.value
+                  setQueryBiasText(nextText)
+                  if (nextText === '') return
+                  const parsed = parseFloat(nextText)
+                  if (Number.isNaN(parsed)) return
+                  const next = clampQueryBias(parsed)
+                  setQueryBias(next)
+                }}
+                onBlur={() => {
+                  if (queryBiasText === '') setQueryBiasText(String(queryBias))
+                  else setQueryBiasText(String(clampQueryBias(queryBiasText)))
+                }}
+                className="w-16 rounded-md border-2 border-mcam-navy/25 bg-white py-1.5 px-2 text-center text-xs text-mcam-navy focus:border-mcam-blue focus:outline-none"
+                aria-label="Query bias (number)"
+              />
+            </div>
+            <p className="text-[11px] text-mcam-muted">
+              0 = all from image, 1 = all from description. Default 0.5 (halved).
+            </p>
+          </div>
+        </div>
 
         {/* MMR diversity slider */}
         <div className={cardClass}>

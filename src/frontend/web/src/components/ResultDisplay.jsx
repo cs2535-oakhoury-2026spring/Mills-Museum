@@ -30,6 +30,7 @@ export function ResultDisplay({
   onKeywordsChange,
   fileName,
   description,
+  retrievalStats,
   rerankProgress,
   nav,
 }) {
@@ -294,10 +295,30 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
                 >
                   {fileName}
                 </p>
-                <p className="shrink-0 text-[11px] text-mcam-muted">
-                  {included.length}/{keywords.length} included
-                </p>
               </div>
+
+              {retrievalStats ? (
+                <div
+                  className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-mcam-muted"
+                  title="Retrieval breakdown"
+                >
+                  <span>
+                    Image: <span className="font-semibold tabular-nums text-mcam-navy">{retrievalStats.image}</span>
+                  </span>
+                  <span aria-hidden>&middot;</span>
+                  <span>
+                    Description: <span className="font-semibold tabular-nums text-mcam-navy">{retrievalStats.description}</span>
+                  </span>
+                  <span aria-hidden>&middot;</span>
+                  <span>
+                    Duplicates: <span className="font-semibold tabular-nums text-mcam-navy">{retrievalStats.duplicates}</span>
+                  </span>
+                  <span aria-hidden>&middot;</span>
+                  <span>
+                    Unique: <span className="font-semibold tabular-nums text-mcam-navy">{retrievalStats.unique}</span>
+                  </span>
+                </div>
+              ) : null}
 
               {/* AI Description dropdown */}
               {description ? (

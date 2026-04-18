@@ -128,7 +128,7 @@ export default function App() {
 
   /**
    * Process a single file via the streaming endpoint.
-   * Returns the parsed result data or null on SSE-level failure.
+   * Returns { resultData, description } on success, or null on SSE-level failure.
    */
   const processFileStream = async (formData) => {
     const res = await fetch(`${API_URL}/predict-stream`, {
@@ -145,6 +145,8 @@ export default function App() {
     const reader = res.body.getReader()
     const decoder = new TextDecoder()
     let resultData = null
+    let descriptionChunks = ''
+    let fullDescription = null
     let buffer = ''
 
     while (true) {
@@ -163,8 +165,10 @@ export default function App() {
         try {
           const msg = JSON.parse(payload)
           if (msg.type === 'description') {
+            descriptionChunks += msg.token
             setProcessingDescription((prev) => prev + msg.token)
           } else if (msg.type === 'description_done') {
+            if (typeof msg.full === 'string') fullDescription = msg.full
             setDescriptionDone(true)
           } else if (msg.type === 'status') {
             setProcessingStatus(msg.message)
@@ -180,7 +184,7 @@ export default function App() {
       }
     }
 
-    return resultData
+    return { resultData, description: (fullDescription ?? descriptionChunks).trim() }
   }
 
   /**
@@ -204,8 +208,9 @@ export default function App() {
    * @param {File[]} files
    * @param {number|object} termCountOrMap
    * @param {number} [lambdaMult]
+   * @param {number} [queryBias]
    */
-  const handleRequestProcess = async (files, termCountOrMap = 20, lambdaMult) => {
+  const handleRequestProcess = async (files, termCountOrMap = 20, lambdaMult, queryBias) => {
     if (!files.length) return
     setBatchError('')
     setPhase('processing')
@@ -250,15 +255,22 @@ export default function App() {
         if (lambdaMult !== undefined && lambdaMult !== null) {
           formData.append('lambda_mult', String(lambdaMult))
         }
+        if (queryBias !== undefined && queryBias !== null) {
+          formData.append('query_bias', String(queryBias))
+        }
 
         let resultData = null
+        let streamDescription = ''
 
         // Try streaming endpoint first
         if (streamAvailable) {
-          resultData = await processFileStream(formData)
-          if (resultData === null) {
+          const stream = await processFileStream(formData)
+          if (stream === null) {
             // Captioner not available — fall back for this and all subsequent files
             streamAvailable = false
+          } else {
+            resultData = stream.resultData
+            streamDescription = stream.description || ''
           }
         }
 
@@ -282,7 +294,8 @@ export default function App() {
           type: 'success',
           file,
           previewUrl,
-          description: processingDescription || '',
+          description: streamDescription,
+          retrievalStats: resultData.retrieval_stats || null,
           keywords: (resultData.keywords || [])
             .map(mapApiKeywordProgressive)
             .filter((k) => k.text),

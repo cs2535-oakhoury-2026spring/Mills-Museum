@@ -78,6 +78,7 @@ export default function ReviewView({
           onKeywordsChange={(next) => onKeywordsChange(resultIndex, next)}
           fileName={current.file.name}
           description={current.description}
+          retrievalStats={current.retrievalStats}
           rerankProgress={current.rerankProgress}
           nav={navProps}
         />
