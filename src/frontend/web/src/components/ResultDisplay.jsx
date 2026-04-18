@@ -495,12 +495,11 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
                   </span>
                 </div>
                 <div className="h-1 w-full overflow-hidden rounded-full bg-mcam-surface border border-mcam-navy/10">
-                  <motion.div
-                    className={`h-full ${rerankProgress.status === 'error' ? 'bg-red-400' : 'bg-mcam-blue'}`}
-                    animate={{
+                  <div
+                    className={`h-full transition-[width] duration-300 ease-out ${rerankProgress.status === 'error' ? 'bg-red-400' : 'bg-mcam-blue'}`}
+                    style={{
                       width: `${rerankProgress.total > 0 ? (rerankProgress.completed / rerankProgress.total) * 100 : 0}%`,
                     }}
-                    transition={{ duration: 0.3, ease: 'easeOut' }}
                   />
                 </div>
               </div>

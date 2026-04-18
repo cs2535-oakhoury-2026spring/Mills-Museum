@@ -310,7 +310,7 @@ export default function UploadScreen({
                         setKeywordCount(next)
                         setKeywordCountText(String(next))
                       }}
-                      className="h-2 w-full cursor-pointer accent-mcam-navy"
+                      className="h-2 w-full cursor-pointer accent-mcam-blue"
                       aria-label="Keyword count"
                     />
                     <input
@@ -396,7 +396,7 @@ export default function UploadScreen({
                       step={1}
                       value={count}
                       onChange={(e) => setHierarchyCount(name, e.target.value)}
-                      className="h-2 w-full cursor-pointer accent-mcam-navy"
+                      className="h-2 w-full cursor-pointer accent-mcam-blue"
                       aria-label={`${name} keyword count`}
                     />
                     <span className="w-8 shrink-0 rounded-md bg-mcam-surface px-2 py-0.5 text-center text-xs font-bold tabular-nums text-mcam-navy">
@@ -433,7 +433,7 @@ export default function UploadScreen({
                   setQueryBias(next)
                   setQueryBiasText(String(next))
                 }}
-                className="h-2 w-full cursor-pointer accent-mcam-navy"
+                className="h-2 w-full cursor-pointer accent-mcam-blue"
                 aria-label="Query bias"
               />
               <span className="text-[10px] text-mcam-muted shrink-0">Description</span>
@@ -486,7 +486,7 @@ export default function UploadScreen({
                   setLambdaMult(next)
                   setLambdaText(String(next))
                 }}
-                className="h-2 w-full cursor-pointer accent-mcam-navy"
+                className="h-2 w-full cursor-pointer accent-mcam-blue"
                 aria-label="MMR lambda"
               />
               <span className="text-[10px] text-mcam-muted shrink-0">Relevant</span>
