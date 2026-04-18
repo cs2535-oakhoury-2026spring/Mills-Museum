@@ -1,2 +1,4 @@
+/* Theme must load before Tailwind so @theme tokens generate utilities (e.g. bg-mcam-navy). */
+@import './theme.css';
 @import 'tailwindcss';
 @source '../**/*.{js,jsx}';

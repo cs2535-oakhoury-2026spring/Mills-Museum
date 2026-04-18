@@ -126,11 +126,9 @@ export function ProcessingDisplay({
 
         {/* Overall batch fraction complete (each file advances `progress` in App) */}
         <div className="h-1.5 w-full overflow-hidden rounded-full border border-mcam-navy/10 bg-mcam-surface">
-          <motion.div
-            className="h-full bg-mcam-navy"
-            initial={{ width: 0 }}
-            animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.3 }}
+          <div
+            className="h-full bg-mcam-blue transition-[width] duration-300 ease-out"
+            style={{ width: `${Math.max(0, Math.min(100, progress))}%` }}
           />
         </div>
 

@@ -129,8 +129,12 @@ export default function App() {
   /**
    * Process a single file via the streaming endpoint.
    * Returns { resultData, description } on success, or null on SSE-level failure.
+   *
+   * @param {FormData} formData
+   * @param {(t: number) => void} [onWithinFileProgress] Monotonic 0–1 progress for the
+   *   current file only; parent maps this into overall batch percentage.
    */
-  const processFileStream = async (formData) => {
+  const processFileStream = async (formData, onWithinFileProgress) => {
     const res = await fetch(`${API_URL}/predict-stream`, {
       method: 'POST',
       headers: { 'ngrok-skip-browser-warning': 'true' },
@@ -148,6 +152,15 @@ export default function App() {
     let descriptionChunks = ''
     let fullDescription = null
     let buffer = ''
+    let sliceT = 0
+    const bumpSlice = (t) => {
+      const next = Math.max(sliceT, Math.min(1, t))
+      if (next <= sliceT) return
+      sliceT = next
+      onWithinFileProgress?.(next)
+    }
+
+    bumpSlice(0.04)
 
     while (true) {
       const { done, value } = await reader.read()
@@ -167,13 +180,17 @@ export default function App() {
           if (msg.type === 'description') {
             descriptionChunks += msg.token
             setProcessingDescription((prev) => prev + msg.token)
+            bumpSlice(0.06 + Math.min(0.72, descriptionChunks.length / 3500))
           } else if (msg.type === 'description_done') {
             if (typeof msg.full === 'string') fullDescription = msg.full
             setDescriptionDone(true)
+            bumpSlice(0.86)
           } else if (msg.type === 'status') {
             setProcessingStatus(msg.message)
+            bumpSlice(sliceT + 0.04)
           } else if (msg.type === 'result') {
             resultData = msg
+            bumpSlice(0.96)
           } else if (msg.type === 'error') {
             throw new Error(msg.message)
           }
@@ -235,6 +252,8 @@ export default function App() {
     // Track whether streaming is available (discovered on first file)
     let streamAvailable = true
 
+    const fileWeight = files.length > 0 ? 100 / files.length : 100
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i]
       const previewUrl = URL.createObjectURL(file)
@@ -243,6 +262,12 @@ export default function App() {
       setProcessingDescription('')
       setDescriptionDone(false)
       setProcessingStatus('')
+
+      const withinFile = (t) => {
+        const clamped = Math.max(0, Math.min(1, t))
+        setProcessingProgress(i * fileWeight + fileWeight * clamped)
+      }
+      withinFile(0.02)
 
       try {
         const formData = new FormData()
@@ -264,7 +289,7 @@ export default function App() {
 
         // Try streaming endpoint first
         if (streamAvailable) {
-          const stream = await processFileStream(formData)
+          const stream = await processFileStream(formData, withinFile)
           if (stream === null) {
             // Captioner not available — fall back for this and all subsequent files
             streamAvailable = false
@@ -276,6 +301,7 @@ export default function App() {
 
         // Fall back to non-streaming endpoint
         if (!resultData) {
+          withinFile(0.08)
           // Need a fresh FormData since the stream may have consumed the first one
           const fallbackForm = new FormData()
           fallbackForm.append('file', file)
@@ -288,6 +314,7 @@ export default function App() {
             fallbackForm.append('lambda_mult', String(lambdaMult))
           }
           resultData = await processFileFallback(fallbackForm)
+          withinFile(1)
         }
 
         acc.push({
