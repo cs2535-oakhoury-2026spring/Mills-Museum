@@ -23,11 +23,13 @@ The **MCAM Keyword Generator** is a browser-based workflow for **Mills College A
 | **`src/frontend/`** | Legacy **`gradio.py`**, **`keyword_feedback.py`**, design/Figma assets — not the path for the Vite app. |
 | **Root** | `README.md`, `LICENSE`, `pyproject.toml` / `requirements.txt` (Python for analysis/pipeline; Colab installs its own deps), root **`package.json`** (optional npm scripts — should point at `src/frontend/web`). |
 
-### `dist/` (production build) — intended workflow vs current repo
+### `dist/` (production build)
 
-**Intended deployment story:** The production UI is the **static output** of `npm run build` (folder **`src/frontend/web/dist/`**). **FastAPI** in Colab mounts that directory at the site root so the **same origin** serves HTML/JS/CSS and `/predict*`, `/facets`, etc. Committing a fresh **`dist/`** to Git means Colab can **`git pull`** and serve immediately **without** running `npm install` / `vite build` on every session—important on **slow Colab free-tier** runtimes and for a simpler notebook.
+The production UI is the static output of `npm run build` (folder `src/frontend/web/dist/`). Both the root `.gitignore` and `src/frontend/web/.gitignore` exclude `dist/` — only source code is tracked in Git.
 
-**Current repository state (verify after clone):** Both the **root** `.gitignore` (`dist/`) and **`src/frontend/web/.gitignore`** (`dist`, `dist-ssr`) **ignore** the build output. So **`dist/` is not tracked today**. The Colab **Setup Paths** cell therefore often runs **`npm install`** + **`vite build`** when `dist/` is missing after clone. To adopt the **committed-artifact** workflow: remove or narrow those ignore rules, run `npm run build` in `src/frontend/web`, and commit `dist/`. Until then, document for the team: **pushing only TS/JS source changes does not update what Colab serves** unless someone rebuilds and commits `dist/`, or Colab rebuilds after deleting `dist/`.
+When Colab starts a session, the **Setup Paths** cell pulls the latest source from GitHub, then checks whether `dist/` exists. If it doesn't, it runs `npm install` and `npx vite build` automatically. If `dist/` already exists from earlier in the same session, it skips the build.
+
+**Practical implication for frontend changes:** Push your source changes to GitHub on the correct branch. In Colab, either restart the runtime (which clears `dist/`) or manually delete `dist/` so the next Setup Paths run triggers a fresh build. If you don't do this, Colab will skip the build and serve the old files.
 
 ---
 
