@@ -111,30 +111,20 @@ This polling exists because prediction returns keyword candidates quickly, while
 ```mermaid
 sequenceDiagram
   participant browser as Browser
-  participant viteDevServer as Vite Dev Server
-  participant ngrok as ngrok
   participant fastApi as FastAPI
 
-  browser->>viteDevServer: Generate batch
-  viteDevServer->>ngrok: POST /predict-stream
-  ngrok->>fastApi: POST /predict-stream
+  browser->>fastApi: POST /predict-stream (FormData)
   alt stream available
-    fastApi-->>ngrok: SSE: tokens + status + result
-    ngrok-->>viteDevServer: SSE: tokens + status + result
-  else stream unavailable (503)
-    Note over viteDevServer,fastApi: Fallback path switches to REST
-    viteDevServer->>ngrok: POST /predict
-    ngrok->>fastApi: POST /predict
-    fastApi-->>ngrok: JSON: job_id + keywords
-    ngrok-->>viteDevServer: JSON: job_id + keywords
+    fastApi-->>browser: SSE: description tokens + final result
+  else 503 or stream unavailable
+    browser->>fastApi: POST /predict (FormData)
+    fastApi-->>browser: JSON: job_id + initial keywords
   end
-  loop until rerank done
-    viteDevServer->>ngrok: GET /predict-status/{job_id}
-    ngrok->>fastApi: GET /predict-status/{job_id}
-    fastApi-->>ngrok: JSON: status + progress + keywords
-    ngrok-->>viteDevServer: JSON: status + progress + keywords
+  loop until rerank complete
+    browser->>fastApi: GET /predict-status/{job_id}
+    fastApi-->>browser: JSON: status + updated scores
   end
-  viteDevServer-->>browser: Updated keyword scores
+  Note over browser,fastApi: Keywords appear immediately; confidence percentages fill in progressively as polling completes.
 ```
 
 ## Static Serving Architecture
