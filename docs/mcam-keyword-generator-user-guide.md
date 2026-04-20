@@ -8,10 +8,23 @@ The generator suggests **Art & Architecture Thesaurus (AAT)** style keywords fro
 
 ## How to open the tool
 
-Your institution will give you a **single web address** (link) for the keyword tool. Open that link in Chrome, Safari, Firefox, or Edge—whichever browser you normally use.
+The keyword tool is reached through a **normal web address** you paste into your browser (Chrome, Safari, Firefox, or Edge).
 
-- The same address loads the **whole application**: the pages you see and the work the tool does behind the scenes all use that one site.
-- If the link does not load or you see repeated errors, contact **your IT contact** or **the person who shared the link**—they make sure the session is running and can share an updated address if needed.
+### If someone else starts the session for you
+
+They run the **MCAM server** notebook in **Google Colab** through the step that starts the web server (**API Server** cell at the bottom). When that cell finishes starting up, Colab prints a line like **Public URL:** followed by the link. **That printed address is what you open**—often the same link is copied into an email or chat for the team.
+
+- The same address loads the **whole application**: the pages you see and the keyword work all use that one site.
+- If the link stops working, the Colab session may have ended or the tunnel may need to be started again—ask whoever runs the notebook for a **fresh** printed URL.
+
+### If you are the one running Google Colab
+
+1. Create a free **ngrok** account (or use one your museum already has) and copy your **authtoken** from the ngrok dashboard.
+2. In Colab, open **Secrets** (key icon) and add a secret named **`NGROK_TOKEN`** with that token as the value. Grant the notebook access to that secret when prompted. The MCAM server notebook reads this token so it can open a secure tunnel.
+3. Run the notebook from the top through the **API Server** code cell at the bottom. When it succeeds, the output shows **Public URL:** — that is the link you (and colleagues) use for this run.
+4. **Note:** On a typical free ngrok setup, that URL is tied to **this** Colab run. If you disconnect or restart the runtime, run the API cell again and use the **new** URL it prints (unless your organization has set up a fixed ngrok domain).
+
+If the link does not load or you see repeated errors, confirm the API cell is still running, the **`NGROK_TOKEN`** secret is set correctly, and you are using the latest URL from the notebook output—not an old copy.
 
 ---
 
@@ -102,7 +115,7 @@ If your institution’s setup provides a hierarchy list, you may see a **Per-hie
 
 ### Helpful tips on the same screen
 
-The **How it works** and **Tips** box summarizes the workflow. If the on-screen text mentions a technical address or notebook, ignore the jargon: use **only the web address your institution gave you**, and ask your contact if the page will not load.
+The **How it works** and **Tips** box summarizes the workflow. The small **address** shown inside the tool is only for troubleshooting; the page you should be using is the **Public URL** printed in Colab after the API cell runs (or the link a colleague shared from that output).
 
 When you are ready, click **Generate Keywords**.
 
@@ -315,8 +328,8 @@ If anything in the file does not match EmbARK’s expectations, your administrat
 You may see a message that **every image failed** and to check the service or try again. That means nothing in that batch could be completed.
 
 - Try again after a short wait.
-- Confirm you are still using the **correct link** from your institution.
-- If it keeps happening, contact **IT** or **the person who runs the session**—they can verify that the service is running.
+- Confirm you are still using the **current Public URL** from Colab (a previous ngrok link will stop working after the session ends or restarts).
+- If it keeps happening, contact **the person who runs the Colab notebook**—they can confirm the **API Server** cell is running and **`NGROK_TOKEN`** is set in Colab secrets.
 
 ### Some images failed but others worked
 
@@ -341,7 +354,7 @@ The hierarchy list is loaded when the page first opens. If it cannot be loaded (
 
 ## Summary
 
-1. Open your institution’s **link**.
+1. Open the **Public URL** from the Colab notebook (after the API cell runs), or the link a colleague shared from that output.
 2. On **Ready**, add **images**, set **options**, then **Generate Keywords**.
 3. On **Processing**, wait for the **progress** (and optional **description**).
 4. On **Review**, **check** or **uncheck** keywords, use **Filter**, **Group**, or **Heatmap** if helpful.
