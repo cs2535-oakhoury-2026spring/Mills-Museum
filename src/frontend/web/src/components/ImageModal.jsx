@@ -12,6 +12,7 @@ import { useEffect } from 'react'
 export function ImageModal({ isOpen, onClose, imageSrc, fileName }) {
   useEffect(() => {
     const handleEscape = (e) => {
+      // Let keyboard users close the modal with Escape.
       if (e.key === 'Escape') onClose()
     }
 

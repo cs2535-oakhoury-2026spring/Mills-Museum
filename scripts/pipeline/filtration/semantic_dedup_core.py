@@ -35,6 +35,7 @@ DEFAULT_MODEL = "all-MiniLM-L6-v2"
 
 
 def _is_dist_installed(dist_name: str) -> bool:
+    """Check whether a Python package distribution is already installed."""
     name = dist_name.casefold()
     for dist in importlib.metadata.distributions():
         md_name = (dist.metadata.get("Name") or "").casefold()
@@ -44,12 +45,14 @@ def _is_dist_installed(dist_name: str) -> bool:
 
 
 def _pip_install(packages: List[str]) -> None:
+    """Install missing dependencies when the user opts into auto-install."""
     cmd = [sys.executable, "-m", "pip", "install", *packages]
     print(f"Attempting dependency install: {' '.join(cmd)}")
     subprocess.check_call(cmd)
 
 
 def check_dependencies(auto_install_deps: bool) -> None:
+    """Ensure FAISS and sentence-transformers are importable before work begins."""
     missing = []
 
     try:
@@ -89,6 +92,7 @@ def check_dependencies(auto_install_deps: bool) -> None:
 
 
 class UnionFind:
+    """Small disjoint-set structure used to merge labels into clusters efficiently."""
     def __init__(self, size: int) -> None:
         self.parent = list(range(size))
         self.rank = [0] * size
@@ -130,6 +134,7 @@ class Cluster:
 
 
 def normalize_language(series: pd.Series) -> pd.Series:
+    """Replace missing language IDs with a sentinel so grouping stays consistent."""
     return series.astype("string").fillna(LANG_NULL_TOKEN)
 
 
@@ -145,6 +150,7 @@ def print_step1_inspection(df: pd.DataFrame) -> None:
 
 
 def l2_normalize(arr: np.ndarray) -> np.ndarray:
+    """Normalize embedding vectors to unit length for cosine-style comparison."""
     norms = np.linalg.norm(arr, axis=1, keepdims=True)
     norms = np.clip(norms, 1e-12, None)
     return arr / norms
@@ -156,6 +162,7 @@ def encode_labels(
     batch_size: int,
     device: str | None,
 ) -> np.ndarray:
+    """Embed every unique label once so later clustering can reuse the vectors."""
     from sentence_transformers import SentenceTransformer
 
     model_kwargs = {}
@@ -182,6 +189,13 @@ def cluster_language_labels(
     threshold: float,
     k_neighbors: int,
 ) -> List[List[str]]:
+    """
+    Cluster labels for one language bucket.
+
+    The pipeline deliberately avoids cross-language merges. For example,
+    an English label and a French label should not collapse into one record
+    just because their embeddings happen to be close.
+    """
     import faiss
 
     if not labels:
@@ -197,6 +211,7 @@ def cluster_language_labels(
     index.add(subset_embeddings)
 
     k = min(k_neighbors, len(labels))
+    # For each label, FAISS returns the `k` nearest labels in embedding space.
     sims, neigh = index.search(subset_embeddings, k)
 
     uf = UnionFind(len(labels))
@@ -226,6 +241,7 @@ def cluster_all_languages(
     threshold: float,
     k_neighbors: int,
 ) -> Dict[str, List[List[str]]]:
+    """Run the clustering logic separately for every language group."""
     out: Dict[str, List[List[str]]] = {}
     for language_key, labels in language_to_labels.items():
         out[language_key] = cluster_language_labels(
@@ -264,6 +280,7 @@ def build_clusters_with_canonicals(
     clustered: Dict[str, List[List[str]]],
     has_note_lookup: Dict[Tuple[str, str], bool],
 ) -> List[Cluster]:
+    """Turn raw member lists into richer cluster records with canonical labels."""
     cluster_rows: List[Cluster] = []
     running_id = 0
     for language_key, clusters in clustered.items():
@@ -286,6 +303,7 @@ def print_random_cluster_preview(
     sample_size: int,
     seed: int,
 ) -> None:
+    """Print a human-readable sample of multi-member clusters for spot checking."""
     multi = []
     for language_key, clusters in clustered.items():
         for members in clusters:
@@ -308,6 +326,7 @@ def print_random_cluster_preview(
 def prepare_label_structures(
     df: pd.DataFrame,
 ) -> Tuple[List[str], Dict[str, int], Dict[str, List[str]], Dict[Tuple[str, str], bool]]:
+    """Build the lookup tables used throughout embedding and clustering."""
     # Global unique labels for embedding (as required).
     unique_labels = df["term_label"].drop_duplicates().tolist()
     label_to_global_index = {label: i for i, label in enumerate(unique_labels)}
@@ -346,6 +365,7 @@ def prepare_label_structures(
 
 
 def build_lookup_tables(clusters: List[Cluster]) -> Dict[Tuple[str, str], Cluster]:
+    """Map every (language, label) pair back to the cluster it belongs to."""
     lookup: Dict[Tuple[str, str], Cluster] = {}
     for cluster in clusters:
         for label in cluster.members:
@@ -367,6 +387,7 @@ def pick_best_row_for_label(group: pd.DataFrame) -> pd.Series:
 
 
 def make_audit_df(clusters: List[Cluster]) -> pd.DataFrame:
+    """Build a compact audit table that explains what each cluster merged."""
     rows = []
     for c in clusters:
         rows.append(
@@ -386,6 +407,12 @@ def semantic_collision_rate(
     embeddings: np.ndarray,
     threshold: float,
 ) -> Tuple[float, float]:
+    """
+    Estimate how many labels still have a very-near semantic neighbor.
+
+    Lower is better here: a high collision rate suggests many labels are still
+    semantically overlapping after deduplication.
+    """
     import faiss
 
     total = 0
@@ -422,6 +449,12 @@ def tokenize(text: str) -> List[str]:
 
 
 def normalized_token_entropy(labels: Iterable[str]) -> Tuple[float, int, int]:
+    """
+    Measure vocabulary diversity in the label set.
+
+    Higher entropy generally means the output vocabulary did not collapse into
+    an overly repetitive set of tokens.
+    """
     token_counts: Dict[str, int] = {}
     total_tokens = 0
     for label in labels:
@@ -441,6 +474,7 @@ def normalized_token_entropy(labels: Iterable[str]) -> Tuple[float, int, int]:
 
 
 def summarize_clusters(clusters: List[Cluster], top_n: int = 10) -> None:
+    """Print the biggest clusters and a size histogram for quick inspection."""
     print("\n=== Largest Clusters (Top 10) ===")
     biggest = sorted(clusters, key=lambda c: c.cluster_size, reverse=True)[:top_n]
     for i, c in enumerate(biggest, start=1):
@@ -457,6 +491,7 @@ def summarize_clusters(clusters: List[Cluster], top_n: int = 10) -> None:
 
 
 def parse_args() -> argparse.Namespace:
+    """Describe the command-line options for the deduplication pipeline."""
     parser = argparse.ArgumentParser(description="Semantic deduplication pipeline")
     parser.add_argument(
         "--input",
@@ -544,6 +579,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
+    """Run the semantic dedup pipeline from input parquet to saved outputs."""
     args = parse_args()
     check_dependencies(auto_install_deps=args.auto_install_deps)
 
@@ -566,6 +602,7 @@ def main() -> None:
         else:
             print(f"Backup copy already exists: {backup_path}")
 
+    # Load the raw dataset that contains labels, term IDs, languages, and notes.
     df = pd.read_parquet(input_path)
     required = {"term_id", "term_label", "language_id", "term_note"}
     missing_cols = required - set(df.columns)
@@ -641,6 +678,8 @@ def main() -> None:
     def lookup_cluster(row: pd.Series) -> Cluster:
         return cluster_lookup[(row["language_key"], row["term_label"])]
 
+    # Attach cluster information back onto every original row so both the
+    # deduplicated dataset and the full mapping file can be created.
     mapped_clusters = df.apply(lookup_cluster, axis=1)
     df["cluster_id"] = mapped_clusters.map(lambda c: c.cluster_id)
     df["canonical_label"] = mapped_clusters.map(lambda c: c.canonical_label)
@@ -701,6 +740,10 @@ def main() -> None:
     args.audit_csv.parent.mkdir(parents=True, exist_ok=True)
     args.mapping_csv.parent.mkdir(parents=True, exist_ok=True)
 
+    # Save three different outputs because they serve different audiences:
+    # - parquet: cleaned dataset for downstream use
+    # - audit CSV: cluster-by-cluster explanation
+    # - mapping CSV: one row per original term ID
     deduped.to_parquet(args.output_parquet, index=False)
     audit_df.to_csv(args.audit_csv, index=False)
     mapping_df.to_csv(args.mapping_csv, index=False)

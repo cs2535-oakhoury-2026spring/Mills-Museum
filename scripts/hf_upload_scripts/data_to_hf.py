@@ -1,9 +1,16 @@
+"""
+Build a Hugging Face dataset from museum metadata plus local image files.
+
+This script matches object records to image files using accession numbers,
+adds the resolved image path as a dataset column, then publishes the combined
+table to the Hugging Face Hub.
+"""
 import pandas as pd
 from datasets import Dataset, Image
 import os
 import glob
 
-# Load the Excel file
+# Load the museum spreadsheet that contains object and artist metadata.
 df = pd.read_excel('data/metadata/MCAM Object and Artist Records.xlsx', sheet_name='MCAM Object and Artist Records')
 
 
@@ -11,7 +18,9 @@ located_images = 0
 failed_images = 0
 failed_images_list = []
 
-# finds images based on Accesion number and adds it to a new column
+# Look for an image whose filename begins with the accession number.
+# Some artworks have multiple related image files, so the script prefers a
+# file with an underscore suffix over one that ends immediately in `.png`.
 images = []
 for accesion_number in df['Accession Number']:
 
@@ -35,7 +44,9 @@ for accesion_number in df['Accession Number']:
         images.append(image_path)
         located_images += 1
     else:
-        images.append(None)  # or handle missing images as needed
+        # Keep the row even when the image is missing so the upload still
+        # reflects the metadata coverage honestly.
+        images.append(None)
         failed_images += 1
         failed_images_list.append(accesion_number)
 
@@ -45,7 +56,7 @@ print("Failed to locate images for the following Accession Numbers:")
 print(failed_images_list)
 print()
 
-# Inserts images colunm as the second column
+# Insert the resolved image paths near the front of the table for readability.
 df.insert(loc=1, column='Image', value=images)
 
 # Display Columns to verify
@@ -55,13 +66,14 @@ print(df.head())
 
 for column in df.columns:
     if column != "Image":
-        # ensure empty values are stored as None
+        # Convert spreadsheet-style empty values into proper nulls before upload.
         df[column] = df[column].astype(str)
         df[column] = df[column].replace(['None', 'nan', 'NaN', ''], None)
 
 
 
-# convert to Hugging Face Dataset and push to hub
+# Convert the pandas table to a Hugging Face dataset, then tell the hub that
+# the `Image` column should be treated as actual image data.
 hf_dataset = Dataset.from_pandas(df)
 
 hf_dataset = hf_dataset.cast_column("Image", Image())

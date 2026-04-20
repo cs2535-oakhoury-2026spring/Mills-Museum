@@ -1,9 +1,15 @@
+"""
+Pipeline-local copy of the museum metadata + image upload script.
+
+This file mirrors `scripts/hf_upload_scripts/data_to_hf.py` so the pipeline
+folder keeps its publishing helpers close to the rest of the data workflow.
+"""
 import pandas as pd
 from datasets import Dataset, Image
 import os
 import glob
 
-# Load the Excel file
+# Load the spreadsheet that describes museum objects and artists.
 df = pd.read_excel('data/metadata/MCAM Object and Artist Records.xlsx', sheet_name='MCAM Object and Artist Records')
 
 
@@ -11,7 +17,7 @@ located_images = 0
 failed_images = 0
 failed_images_list = []
 
-# finds images based on Accesion number and adds it to a new column
+# Attempt to resolve one image file for each accession number.
 images = []
 for accesion_number in df['Accession Number']:
 
@@ -35,7 +41,8 @@ for accesion_number in df['Accession Number']:
         images.append(image_path)
         located_images += 1
     else:
-        images.append(None)  # or handle missing images as needed
+        # Preserve the metadata row even if its image could not be found.
+        images.append(None)
         failed_images += 1
         failed_images_list.append(accesion_number)
 
@@ -45,7 +52,7 @@ print("Failed to locate images for the following Accession Numbers:")
 print(failed_images_list)
 print()
 
-# Inserts images colunm as the second column
+# Add the resolved image path column near the front for easier inspection.
 df.insert(loc=1, column='Image', value=images)
 
 # Display Columns to verify
@@ -55,13 +62,13 @@ print(df.head())
 
 for column in df.columns:
     if column != "Image":
-        # ensure empty values are stored as None
+        # Normalize blank-like spreadsheet values into proper nulls.
         df[column] = df[column].astype(str)
         df[column] = df[column].replace(['None', 'nan', 'NaN', ''], None)
 
 
 
-# convert to Hugging Face Dataset and push to hub
+# Upload the table as a hub dataset and mark the image column accordingly.
 hf_dataset = Dataset.from_pandas(df)
 
 hf_dataset = hf_dataset.cast_column("Image", Image())

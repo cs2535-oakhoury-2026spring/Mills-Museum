@@ -45,6 +45,7 @@ CHART_LAYOUT = dict(
 
 
 def load_dataset() -> pd.DataFrame:
+    """Load the parquet snapshot and add helper columns used by multiple charts."""
     dataframe = pd.read_parquet(DATA_PATH).copy()
     dataframe["variant_count"] = dataframe["variant_terms"].apply(len)
     dataframe["scope_len"] = dataframe["scope_note"].fillna("").str.len()
@@ -52,10 +53,12 @@ def load_dataset() -> pd.DataFrame:
 
 
 def compute_tree_depths(dataframe: pd.DataFrame) -> pd.Series:
+    """Measure how many parent links each term sits below its facet root."""
     parent_map = dict(zip(dataframe["subject_id"], dataframe["parent_id"]))
     memo: dict[int, int] = {}
 
     def get_depth(subject_id: int) -> int:
+        # Cache previously solved nodes so repeated parent chains are cheap.
         if subject_id in memo:
             return memo[subject_id]
         parent_id = parent_map.get(subject_id)
@@ -74,6 +77,7 @@ def compute_tree_depths(dataframe: pd.DataFrame) -> pd.Series:
 # ──────────────────────────────────────────────
 
 def build_facet_river(df: pd.DataFrame) -> go.Figure:
+    """Show how many terms belong to each top-level AAT hierarchy."""
     counts = df["hierarchy"].value_counts().reset_index()
     counts.columns = ["Facet", "Terms"]
     counts["Share"] = counts["Terms"] / counts["Terms"].sum()
@@ -89,6 +93,7 @@ def build_facet_river(df: pd.DataFrame) -> go.Figure:
 
 
 def build_sunburst(df: pd.DataFrame) -> go.Figure:
+    """Show the largest parent-term groupings inside each hierarchy."""
     top_parents = (df.groupby(["hierarchy", "parent_term"]).size().reset_index(name="count")
                    .sort_values("count", ascending=False).groupby("hierarchy").head(5))
     fig = px.sunburst(top_parents, path=["hierarchy", "parent_term"], values="count",
@@ -100,6 +105,7 @@ def build_sunburst(df: pd.DataFrame) -> go.Figure:
 
 
 def build_century_heatmap(df: pd.DataFrame) -> go.Figure:
+    """Extract century references from scope notes and count them by hierarchy."""
     scope = df[df["scope_note"].notna()]
     facet_century: dict = defaultdict(lambda: Counter())
     for _, row in scope.iterrows():
@@ -120,6 +126,7 @@ def build_century_heatmap(df: pd.DataFrame) -> go.Figure:
 
 
 def build_kw_century(df: pd.DataFrame) -> go.Figure:
+    """Track common preferred-term words across the centuries named in scope notes."""
     scope = df[df["scope_note"].notna()]
     top_words = Counter()
     for t in df["preferred_term"].str.lower():
@@ -148,6 +155,7 @@ def build_kw_century(df: pd.DataFrame) -> go.Figure:
 
 
 def build_depth_violin(df: pd.DataFrame) -> go.Figure:
+    """Visualize how deep each hierarchy tends to be in the taxonomy tree."""
     ddf = df.copy()
     ddf["tree_depth"] = compute_tree_depths(ddf)
     fig = px.violin(ddf, x="hierarchy", y="tree_depth", color="hierarchy",
@@ -162,6 +170,7 @@ def build_depth_violin(df: pd.DataFrame) -> go.Figure:
 
 
 def build_geo_area(df: pd.DataFrame) -> go.Figure:
+    """Approximate geographic emphasis by matching regional words in scope notes."""
     scope = df[df["scope_note"].notna()]
     geo_pats = {
         "European": re.compile(r"\b(europe|european|french|italian|english|german|spanish|dutch|greek|roman|british)\b", re.I),
@@ -189,8 +198,10 @@ def build_geo_area(df: pd.DataFrame) -> go.Figure:
 
 
 def build_scatter(df: pd.DataFrame) -> go.Figure:
+    """Compare translation breadth against scope-note length for individual terms."""
     sampled = df[df["scope_len"] > 0].copy()
     if len(sampled) > 3000:
+        # Sampling keeps the chart responsive without changing the overall shape too much.
         sampled = sampled.sample(3000, random_state=42)
     fig = px.scatter(sampled, x="variant_count", y="scope_len", color="hierarchy",
                      hover_name="preferred_term", opacity=0.55, color_discrete_sequence=PALETTE)
@@ -216,6 +227,7 @@ def build_hero_html() -> str:
 
 
 def build_stat_strip(df: pd.DataFrame) -> str:
+    """Build the top-line statistic cards shown near the top of the exhibit."""
     scope_pct = df["scope_note"].notna().mean() * 100
     multi = (df["variant_count"] >= 5).sum()
 
@@ -252,6 +264,7 @@ def _panel_header(pill: str, title: str, callouts: list[tuple[str, str]], warm: 
 
 
 def build_keyword_wall(df: pd.DataFrame) -> str:
+    """Build a text-heavy card wall that surfaces vocabulary per hierarchy."""
     top_facets = df["hierarchy"].value_counts().head(6).index.tolist()
     cards = []
     for facet in top_facets:
@@ -349,6 +362,7 @@ document.addEventListener('keydown', function(e) {
 # ──────────────────────────────────────────────
 
 def create_interface() -> tuple[gr.Blocks, str, gr.themes.Soft]:
+    """Assemble the full Gradio exhibit and return it for launching elsewhere."""
     df = load_dataset()
 
     css = """
@@ -642,6 +656,7 @@ def create_interface() -> tuple[gr.Blocks, str, gr.themes.Soft]:
             # ── FOOTER ──
             gr.HTML(build_footer())
 
+        # Inject the JavaScript that powers click-to-expand chart viewing.
         gr.HTML(MODAL_JS)
 
     return demo, css, theme
@@ -651,6 +666,7 @@ demo, _css, _theme = create_interface()
 
 
 def main() -> None:
+    """Launch the exhibit locally for browser viewing."""
     demo.launch(server_name="127.0.0.1", server_port=7860, css=_css, theme=_theme)
 
 

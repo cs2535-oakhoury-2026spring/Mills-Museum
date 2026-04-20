@@ -43,6 +43,8 @@ export function ResultDisplay({
     })
 
   const handleCopyKeywords = () => {
+    // Copy only the currently included terms, because excluded terms are
+    // considered intentionally rejected by the reviewer.
     const text = included.map((k) => k.text).join(', ')
     navigator.clipboard.writeText(text)
     setCopied(true)
@@ -51,7 +53,8 @@ export function ResultDisplay({
   }
 
   const toggleKeyword = (index) => {
-    // Immutable update makes React state changes predictable.
+    // Flip one keyword between included and excluded without mutating the
+    // original array. React works best when state updates create new objects.
     onKeywordsChange(
       keywords.map((k, i) =>
         i === index ? { ...k, selected: !isKeywordIncluded(k) } : k,
@@ -60,6 +63,8 @@ export function ResultDisplay({
   }
 
   const handleExportText = () => {
+    // Create a human-readable per-image export that museum staff can inspect
+    // without needing spreadsheet software.
     const lines = included.map((k) => `  - ${k.text} (${k.confidence}%)`)
     const label = stripFileExtension(fileName) || 'keywords'
     const text = `${label}
@@ -75,6 +80,8 @@ Comma-separated: ${included.map((k) => k.text).join(', ')}
   }
 
   const handleExportCsv = () => {
+    // Create one CSV row per selected keyword so downstream cataloging tools
+    // can import or manipulate the results more easily.
     const accession = getAccessionNumberFromTitle(fileName) || 'unknown'
     const header = 'accession_number,keyword'
     const rows = included.map((k) => {

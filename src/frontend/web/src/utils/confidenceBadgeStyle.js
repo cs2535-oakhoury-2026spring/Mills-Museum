@@ -8,6 +8,8 @@
 const L = (a, b, t) => a + (b - a) * t
 
 function parseHex(hex) {
+  // Turn a CSS color like "#ffffff" into numeric red/green/blue channels
+  // so we can blend colors mathematically.
   const h = hex.replace('#', '')
   return {
     r: parseInt(h.slice(0, 2), 16),
@@ -17,6 +19,7 @@ function parseHex(hex) {
 }
 
 function rgbStr(rgb) {
+  // Convert numeric channels back into a CSS-ready color string.
   return `rgb(${Math.round(rgb.r)}, ${Math.round(rgb.g)}, ${Math.round(rgb.b)})`
 }
 
@@ -46,6 +49,8 @@ export function getConfidenceBadgeStyle(confidence) {
   // Clamp to a stable 0..1 range even if upstream data is missing or malformed.
   const t = Math.max(0, Math.min(100, Number(confidence))) / 100
 
+  // Higher confidence slowly darkens the badge so stronger matches stand out
+  // without changing the surrounding layout.
   const badgeRgb = mixRgb(BADGE_WHITE, BADGE_DARKER, t)
   const badgeBg = rgbStr(badgeRgb)
   const badgeLum = luminance(badgeRgb)

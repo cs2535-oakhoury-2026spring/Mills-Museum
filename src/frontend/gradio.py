@@ -43,6 +43,7 @@ EXPORT_DIR: str | None = None
 
 
 def empty_app_state() -> dict:
+    """Return the blank state object used when no batch has been processed yet."""
     return {"all_results": {}, "current_index": 0}
 
 
@@ -72,6 +73,7 @@ def configure_demo_assets(
 
 
 def get_backend_runtime():
+    """Fetch the globally registered backend pieces or fail with a clear message."""
     missing = [
         name
         for name in ("embedding_model", "reranking_model", "collection")
@@ -88,6 +90,7 @@ def get_backend_runtime():
 
 
 def preview_image(files, index):
+    """Open one uploaded file so the user can preview it before processing."""
     if not files:
         return None, "No images selected"
     index = max(0, min(index, len(files) - 1))
@@ -95,18 +98,21 @@ def preview_image(files, index):
 
 
 def preview_next(files, index):
+    """Move the upload preview one step forward."""
     index = min(index + 1, len(files) - 1) if files else 0
     img, counter = preview_image(files, index)
     return img, counter, index
 
 
 def preview_prev(files, index):
+    """Move the upload preview one step backward."""
     index = max(index - 1, 0) if files else 0
     img, counter = preview_image(files, index)
     return img, counter, index
 
 
 def on_upload(files):
+    """Show the first uploaded image immediately after a new selection is made."""
     if not files:
         return None, "No images selected", 0
     img, counter = preview_image(files, 0)
@@ -114,10 +120,12 @@ def on_upload(files):
 
 
 def default_repo_files():
+    """Return the optional built-in demo files, if any were configured."""
     return REPO_DEMO_IMAGES.copy() or None
 
 
 def initialize_upload_defaults():
+    """Populate the upload screen with repository demo images when available."""
     files = default_repo_files()
     if not files:
         return None, None, "No images selected", 0, "Upload images to start."
@@ -148,6 +156,7 @@ def build_keyword_choices(result):
 
 
 def build_review_summary(result):
+    """Render a short HTML summary of the current review state for one image."""
     visible_count = len(result.get("visible_terms", []))
     selected_count = len(result.get("selected_terms", []))
     rejected_count = len(result.get("rejected_terms", []))
@@ -178,6 +187,7 @@ def build_review_summary(result):
 
 
 def build_action_feedback(message, kind="info"):
+    """Wrap a status message in a styled HTML card for the Gradio layout."""
     if not message:
         message = "Review the suggestions, uncheck any weak matches, then regenerate to fill the open slots."
     return f"<div class='feedback-card {kind}-card'>{message}</div>"
@@ -338,11 +348,18 @@ def generate_ranked_candidates(
 
 
 def current_result(state):
+    """Return the result dict for the image the user is currently looking at."""
     current_index = state.get("current_index", 0)
     return state.get("all_results", {}).get(current_index)
 
 
 def render_current_image(state, message=None, kind="info"):
+    """
+    Convert the current image state into UI updates for Gradio.
+
+    Gradio event handlers return tuples rather than directly mutating widgets,
+    so this function centralizes the "what should the screen show now?" logic.
+    """
     result = current_result(state)
     if result is None:
         return (
@@ -390,6 +407,8 @@ def process_multiple_images(images, title, medium, state):
     for idx, image_path in enumerate(images):
         image = None
         try:
+            # Each image is processed independently so one failure does not
+            # destroy the entire batch.
             image = Image.open(image_path)
             ranked_candidates = generate_ranked_candidates(
                 image, title=title or "", medium=medium or "",
@@ -402,6 +421,8 @@ def process_multiple_images(images, title, medium, state):
             state["all_results"][idx] = result
             processed_count += 1
         except Exception as exc:
+            # Store the failure in the same structure as a success so the user
+            # can still navigate the whole batch and see what went wrong.
             state["all_results"][idx] = {
                 "image": image,
                 "candidate_terms": [],
@@ -451,6 +472,7 @@ def process_multiple_images(images, title, medium, state):
 
 
 def update_selections(selected_terms, state):
+    """React to checkbox changes without generating any new keywords yet."""
     result = current_result(state)
     if result is None:
         return state, "", build_action_feedback("Upload and process images first.")
@@ -468,6 +490,7 @@ def update_selections(selected_terms, state):
 
 
 def regenerate_current_image(selected_terms, state):
+    """Replace only the unchecked terms for the current image."""
     result = current_result(state)
     if result is None:
         return (*render_current_image(state, "Upload and process images first.", "error"), "", state)
@@ -502,6 +525,7 @@ def regenerate_current_image(selected_terms, state):
 
 
 def next_image(state):
+    """Advance to the next processed image in the batch."""
     if not state.get("all_results"):
         return (*render_current_image(state), state)
     state["current_index"] = min(
@@ -511,6 +535,7 @@ def next_image(state):
 
 
 def previous_image(state):
+    """Go back to the previous processed image in the batch."""
     if not state.get("all_results"):
         return (*render_current_image(state), state)
     state["current_index"] = max(state["current_index"] - 1, 0)
@@ -808,6 +833,8 @@ with gr.Blocks(css=css, theme=theme, title="MCAM Art Keyword Generator", favicon
 
         state = gr.State(empty_app_state())
         preview_index = gr.State(0)
+        # `state` holds all processed batch results.
+        # `preview_index` is only for navigating files before generation starts.
 
         with gr.Column(visible=True, elem_classes=["section-card"]) as upload_section:
             with gr.Row(equal_height=True):
@@ -918,6 +945,8 @@ with gr.Blocks(css=css, theme=theme, title="MCAM Art Keyword Generator", favicon
     # -------------------------------------------------------------------
 
     upload_input.change(
+        # When the file list changes, refresh the preview area and reset the
+        # upload-side pager back to the first image.
         fn=on_upload,
         inputs=[upload_input],
         outputs=[current_image, preview_counter, preview_index],
@@ -930,6 +959,7 @@ with gr.Blocks(css=css, theme=theme, title="MCAM Art Keyword Generator", favicon
     )
 
     preview_next_btn.click(
+        # Pager for the upload preview before any model call happens.
         fn=preview_next,
         inputs=[upload_input, preview_index],
         outputs=[current_image, preview_counter, preview_index],
@@ -948,6 +978,8 @@ with gr.Blocks(css=css, theme=theme, title="MCAM Art Keyword Generator", favicon
     )
 
     process_btn.click(
+        # Main action: send every uploaded image through the retrieval and
+        # reranking pipeline, then swap the UI into review mode.
         fn=process_multiple_images,
         inputs=[upload_input, title_input, medium_input, state],
         outputs=[
@@ -965,12 +997,14 @@ with gr.Blocks(css=css, theme=theme, title="MCAM Art Keyword Generator", favicon
     )
 
     keyword_checkboxes.change(
+        # Keep the summary cards in sync as the user accepts or rejects terms.
         fn=update_selections,
         inputs=[keyword_checkboxes, state],
         outputs=[state, review_summary, action_feedback],
     )
 
     regenerate_btn.click(
+        # Fill only the unchecked keyword slots from the unused candidate pool.
         fn=regenerate_current_image,
         inputs=[keyword_checkboxes, state],
         outputs=[
@@ -985,6 +1019,7 @@ with gr.Blocks(css=css, theme=theme, title="MCAM Art Keyword Generator", favicon
     )
 
     next_btn.click(
+        # Batch navigation inside the review screen.
         fn=next_image,
         inputs=[state],
         outputs=[
@@ -1011,12 +1046,14 @@ with gr.Blocks(css=css, theme=theme, title="MCAM Art Keyword Generator", favicon
     )
 
     export_btn.click(
+        # Build a CSV export from the currently selected terms across all images.
         fn=export_results,
         inputs=[state],
         outputs=[export_output, download_csv_btn, action_feedback],
     )
 
     upload_more_btn.click(
+        # Reset the UI to begin a brand-new batch without restarting the app.
         fn=upload_more,
         inputs=[],
         outputs=[

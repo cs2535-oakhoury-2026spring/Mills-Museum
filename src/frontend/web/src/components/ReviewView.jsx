@@ -27,12 +27,14 @@ export default function ReviewView({
   const current = results[resultIndex]
 
   const handleExportAll = () => {
-    // Export uses shared adapters so UI + exports follow the same inclusion rules.
+    // Build one combined plain-text export for the entire batch.
+    // Only keywords the reviewer left "included" are written out.
     const text = buildCombinedExportText(results)
     downloadTextFile('mcam_keywords_export.txt', text)
   }
 
   const handleExportCsv = () => {
+    // Build a spreadsheet-friendly version of the same batch export.
     const csv = buildCombinedExportCsv(results)
     downloadTextFile('mcam_keywords_export.csv', csv)
   }

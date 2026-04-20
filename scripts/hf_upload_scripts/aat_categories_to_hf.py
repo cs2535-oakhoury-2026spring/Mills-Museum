@@ -40,6 +40,7 @@ EN_LANG_CODE = "70051"
 
 
 def main():
+    """Extract the museum-relevant AAT subset from SQLite and publish it."""
     conn = sqlite3.connect(DB_PATH)
     conn.execute("PRAGMA journal_mode = WAL")
 
@@ -84,7 +85,7 @@ def main():
     """, conn)
     print(f"✓  {len(desc)} subjects across selected hierarchies")
 
-    # map each subject → its hierarchy name + facet code
+    # Attach human-readable hierarchy metadata to every discovered subject ID.
     rmeta = roots.set_index("root_id").to_dict("index")
     subj = desc.drop_duplicates(subset="SUBJECT_ID", keep="first").copy()
     subj["hierarchy"] = subj["root_id"].map(lambda r: rmeta[r]["hierarchy_name"])
@@ -98,14 +99,14 @@ def main():
     )
 
     # ── 4. gather metadata ───────────────────────────────────────────
-    # preferred term
+    # Preferred term: the one label that should represent the concept.
     pref = pd.read_sql_query("""
         SELECT t.SUBJECT_ID, t.TERM AS preferred_term, t.TERM_ID
         FROM   TERM t JOIN _keep k ON t.SUBJECT_ID = k.SUBJECT_ID
         WHERE  t.PREFERRED = 'P'
     """, conn)
 
-    # variant terms  →  list per subject
+    # Non-preferred terms become a list of alternates/translations.
     vari = pd.read_sql_query("""
         SELECT t.SUBJECT_ID, t.TERM
         FROM   TERM t JOIN _keep k ON t.SUBJECT_ID = k.SUBJECT_ID
@@ -117,13 +118,13 @@ def main():
         .rename(columns={"TERM": "variant_terms"})
     )
 
-    # subject-level fields
+    # Additional subject metadata from the core AAT tables.
     subj_meta = pd.read_sql_query("""
         SELECT s.SUBJECT_ID, s.RECORD_TYPE, s.PARENT_KEY, s.SORT_ORDER
         FROM   SUBJECT s JOIN _keep k ON s.SUBJECT_ID = k.SUBJECT_ID
     """, conn)
 
-    # scope notes (prefer English, fall back to first available)
+    # Scope notes are descriptive paragraphs. Prefer English when possible.
     notes = pd.read_sql_query("""
         SELECT sn.SUBJECT_ID, sn.NOTE_TEXT, sn.LANGUAGE_CODE
         FROM   SCOPE_NOTES sn JOIN _keep k ON sn.SUBJECT_ID = k.SUBJECT_ID
@@ -135,7 +136,7 @@ def main():
                       [["SUBJECT_ID", "NOTE_TEXT"]]
                       .rename(columns={"NOTE_TEXT": "scope_note"}))
 
-    # parent's preferred term (gives breadcrumb context)
+    # Pull the parent term name so downstream analysis can show taxonomy context.
     parent_term = pd.read_sql_query("""
         SELECT t.SUBJECT_ID AS PARENT_KEY, t.TERM AS parent_term
         FROM   TERM t
@@ -146,7 +147,7 @@ def main():
           )
     """, conn)
 
-    # ── 5. assemble ──────────────────────────────────────────────────
+    # Combine all of the extracted pieces into one flat analysis-friendly table.
     df = subj[["SUBJECT_ID", "hierarchy", "facet", "root_id"]]
     df = df.merge(subj_meta, on="SUBJECT_ID", how="left")
     df = df.merge(pref,      on="SUBJECT_ID", how="left")
@@ -171,7 +172,8 @@ def main():
     df = df[df["record_type"] == "C"]  # keep only concepts, drop H/G/F records
 
 
-    # drop direct children of hierarchy roots (broad category labels, not real terms)
+    # Drop the immediate children of the hierarchy roots because those entries
+    # are still broad category buckets rather than specific museum-friendly terms.
     root_ids = set(roots["root_id"].astype(int))
     df = df[~df["parent_id"].isin(root_ids)]
 
@@ -186,7 +188,8 @@ def main():
     print(f"\n✓  Final dataset: {len(df):,} rows × {len(df.columns)} cols")
     print(df["hierarchy"].value_counts().to_string(header=False))
 
-    # ── 6. push to HuggingFace ───────────────────────────────────────
+    # Publish the resulting subset so other parts of the project can consume
+    # it as a regular Hugging Face dataset.
     ds = Dataset.from_pandas(df, preserve_index=False)
     ds.push_to_hub(HF_REPO, private=False, token=HF_TOKEN)
     print(f"\n✓  Pushed → https://huggingface.co/datasets/{HF_REPO}")

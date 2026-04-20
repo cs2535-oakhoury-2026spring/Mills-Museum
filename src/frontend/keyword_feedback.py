@@ -30,6 +30,7 @@ def candidate_key(candidate: KeywordCandidate) -> str:
 
 
 def dedupe_candidates(candidates: list[KeywordCandidate]) -> list[KeywordCandidate]:
+    """Remove duplicate terms while keeping the first ranked copy of each one."""
     deduped: list[KeywordCandidate] = []
     seen: set[str] = set()
 
@@ -57,7 +58,8 @@ def initialize_image_result(
 ) -> ImageKeywordState:
     """Build the initial state dict for one image after retrieval+reranking."""
     ranked_candidates = dedupe_candidates(candidates)
-    # Show at most target_count terms; the rest stay in the pool for regeneration
+    # Show only the first `target_count` terms up front. The remainder stays in
+    # reserve so the user can reject terms and ask for replacements later.
     visible_terms = [candidate["key"] for candidate in ranked_candidates[:target_count]]
     adjusted_target_count = min(target_count, len(visible_terms))
 
@@ -77,6 +79,7 @@ def sync_selected_terms(
     selected_terms: list[str] | None,
 ) -> ImageKeywordState:
     """Update the result to reflect the user's current checkbox selections."""
+    # Only terms currently visible in the UI are allowed to remain selected.
     visible_terms = result.get("visible_terms", [])
     selected_set = set(selected_terms or [])
     result["selected_terms"] = [
@@ -98,6 +101,8 @@ def regenerate_removed_terms(
     selected_terms = result.get("selected_terms", [])
     target_count = result.get("target_count", len(visible_terms))
 
+    # Split the current visible list into kept terms and explicitly removed terms.
+    # The removed terms become ineligible for future regeneration results.
     selected_set = set(selected_terms)
     kept_terms = [term_key for term_key in visible_terms if term_key in selected_set]
     removed_terms = [term_key for term_key in visible_terms if term_key not in selected_set]

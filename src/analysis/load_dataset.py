@@ -75,6 +75,7 @@ def load_aat_dataset(
 
 
 def parse_args() -> argparse.Namespace:
+    """Define the small command-line interface for downloading a dataset snapshot."""
     parser = argparse.ArgumentParser(
         description="Download and cache an AAT dataset snapshot as Parquet.",
     )

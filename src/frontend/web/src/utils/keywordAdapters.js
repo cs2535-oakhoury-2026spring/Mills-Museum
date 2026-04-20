@@ -10,10 +10,10 @@ function stripKeywordDefinition(rawText) {
   const text = String(rawText).trim()
   if (!text) return ''
 
-  // Your backend may sometimes return labels in the form:
+  // The backend may sometimes return labels in the form:
   //   "<term> : <definition>"
   //   "<term> :"
-  // We only want to display "<term>".
+  // For the review UI, we only want the keyword itself, not the definition.
   const delimiter = ' : '
   if (text.includes(delimiter)) {
     return text.split(delimiter, 1)[0].trim()
@@ -58,8 +58,11 @@ export function mapApiKeyword(kw) {
   const rawText = kw.label ?? kw.text ?? ''
 
   return {
+    // Display text is cleaned so curators see the short term name.
     text: stripKeywordDefinition(rawText),
+    // Confidence is rounded to one decimal place for readability.
     confidence: Number.isFinite(score) ? Math.round(score * 10) / 10 : 0,
+    // New results start as included by default; the reviewer can opt out later.
     selected: true,
   }
 }
@@ -99,6 +102,8 @@ export function buildCombinedExportText(results) {
       const name =
         raw != null && raw !== '' ? stripFileExtension(raw) : 'unknown'
       if (r.type === 'error') {
+        // Preserve failures in the export summary so the batch record still
+        // shows which images could not be processed.
         return `${name}\n[Error] ${r.error}`
       }
       const line = r.keywords.filter(isKeywordIncluded).map((k) => k.text).join(', ')
@@ -133,6 +138,8 @@ export function buildCombinedExportCsv(results) {
  * Uses an object URL + temporary anchor click.
  */
 export function downloadTextFile(filename, text) {
+  // Use a temporary in-memory file so the browser can download content
+  // generated on the fly without sending it back to a server.
   const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
