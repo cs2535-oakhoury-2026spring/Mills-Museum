@@ -1,112 +1,91 @@
-# Mills Art Museum Project: Generating AAT Keywords for the Museum Collection
+# Mills Museum — MCAM Keyword Generator
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![React](https://img.shields.io/badge/React-18-61dafb?logo=react&logoColor=white)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/Vite-5-646cff?logo=vite&logoColor=white)](https://vitejs.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-38bdf8?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-API-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 
-# Goal
+**Mills College Art Museum** tooling to suggest **Art & Architecture Thesaurus (AAT)** keywords from artwork images, review them in the browser, and export for cataloging (including CSV workflows for **EmbARK**).
 
-Labeling Art Museum pieces has previously been a tedious and time-consuming task at the Mills College Art Museum. 
-In light of recent advancements in image recognition and object categorization, the goal of this project is to lay the stones,
-for potential future applications of modern AI and ML techniques to the general art community. 
+| Audience | Start here |
+|----------|------------|
+| **Developers** | [**Technical handover →**](docs/technical-handover.md) |
+| **Museum staff** | [**User guide →**](docs/mcam-keyword-generator-user-guide.md) |
 
+---
 
-# Background & Why
+<!-- Replace with a real screenshot when available -->
+![MCAM Keyword Generator — screenshot placeholder](https://via.placeholder.com/960x540/1e2a44/d8e4f5?text=MCAM+Keyword+Generator+%28add+screenshot+to+docs%2F%29)
 
-At Mills College, museum staff each assign each art piece a keyword that best represent the piece's content, from a 
-total collection of 50,000 keywords. This has slowed down the labeling process and has resulted in a large number of 
-pieces not being labeled, and highlighted the need for a more streamlined & automated process.
+---
 
+## Quick start (frontend)
 
-# How?
+```bash
+git clone https://github.com/cs2535-oakhoury-2026spring/Mills-Museum.git
+cd Mills-Museum/src/frontend/web
+npm install
+cp .env.example .env.local  # optional: create .env.local — see handover
+npm run dev
+```
 
-This project can be devided into two parts:
-1. A central user interface to generate AAT keywords for the entire collection of art pieces
-2. A pipeline to handle unique AAT datasets, their respective refinement, cleaning, and finally matching process for each museum piece.
+Open the URL Vite prints (usually `http://localhost:5173`). Point **`VITE_API_URL`** in **`.env.local`** at your running Colab/ngrok backend so uploads and `/facets` work. Full setup, proxy notes, and **`npm run build`** / **`dist/`** workflow are in the [**technical handover**](docs/technical-handover.md).
 
+From the **repository root** you can also run:
 
-## User Interface
-The user interface connects museum staff to the labeling pipeline: a single place to upload artwork images, watch processing progress, and review model-generated AAT keyword suggestions. Staff can include or exclude individual keywords before copying or exporting results; batch uploads are supported with navigation between images.
+```bash
+npm install
+npm run dev
+```
 
-### Specs
+(Uses `--prefix src/frontend/web` — see root `package.json`.)
 
-**Stack.** The web app lives under `src/frontend/web/`. It is built with **React 18**, **Vite 5**, and **Tailwind CSS v4**, with **Lucide React** for icons and **Motion** for light transitions on key screens.
+---
 
-**Design choices.** The UI uses a **dark slate** gradient background and card surfaces with subtle rings so attention stays on the artwork and keyword list. **Amber and orange** accents mark primary actions (for example, “Generate Keywords”) and **selected** keyword tiles so recommendations read as reviewable highlights rather than plain text. The header shows a simple **phase** indicator (Ready / Processing / Review) so the flow stays obvious: **Upload → Processing → Review**.
+## Tech stack
 
-**Screens (implemented behavior).**
+| Layer | Technologies |
+|-------|----------------|
+| **UI** | React 18, Vite 5, Tailwind CSS v4, Motion, Lucide React |
+| **Inference & API** | FastAPI, uvicorn, ChromaDB, LangChain (`langchain-chroma`), Hugging Face Hub |
+| **Hosting / demo** | Google Colab, ngrok |
+| **Legacy / alt UI** | Gradio (`src/frontend/gradio.py`) |
 
-- **Upload:** Image preview with drag-and-drop or file picker; multiple files with prev/next preview. Users set how many keywords to request (**1–50**, default **20**) via a range slider and number field, then run **Generate Keywords**.
-- **Processing:** Progress bar, current image preview, and a status line (for example, which image in a batch is running).
-- **Review:** For each image, a large preview plus filename; a **keyword grid** showing **term name** and **confidence percentage** (definitions appended in API labels are stripped for display). Each keyword has a **checkbox** to include or exclude it from copy and export. Users can **filter** the list, **copy** included keywords, download a **per-image TXT** export, and **export all** batch results to a single text file. When multiple images are processed, prev/next moves between results; errors for individual files are surfaced in the review flow.
+---
 
-**API and configuration.** The client calls `POST {VITE_API_URL}/predict` with **multipart form data**: `file` (image) and `term_count` (integer string, clamped 1–50 in the app). Set `VITE_API_URL` in `.env.local` (for example, your ngrok URL). The request sends an `ngrok-skip-browser-warning` header for compatibility with ngrok-hosted backends. The backend should return JSON shaped like `{ "keywords": [ { "label" or "text": "...", "score": <number> }, ... ] }`. Scores are treated as percentages in the UI (see `mapApiKeyword` in `src/frontend/web/src/utils/keywordAdapters.js`); long labels that include `"term : definition"` are trimmed to the term name for display only.
-
-**Local development.** From the repo root: `npm -C src/frontend/web install` then `npm -C src/frontend/web run dev`. A mock backend is available via `npm -C src/frontend/web run mock` (default `http://localhost:8000`).
-
-**Running via Colab.** Open `colab/mcam_server.ipynb` in Google Colab and run all cells. The notebook clones the repo, loads the VDB from `src/data/VDB/`, downloads models from Hugging Face, and starts a FastAPI server exposed via ngrok.
-
-
-## Project Structure
+## Repository map
 
 ```
 Mills-Museum/
-├── colab/
-│   └── mcam_server.ipynb       # Main Colab notebook — runs the full pipeline
+├── colab/                 # mcam_server.ipynb — full stack + tunnel
+├── docs/                  # Staff user guide + technical handover
+├── media/                 # Logo (imported by Vite from repo root)
+├── scripts/               # HF uploads, data pipeline
 ├── src/
-│   ├── data/
-│   │   └── VDB/                # ChromaDB vector store (44k AAT term embeddings)
-│   ├── frontend/
-│   │   ├── web/                # React + Vite + Tailwind frontend
-│   │   ├── gradio.py           # Standalone Gradio interface
-│   │   ├── keyword_feedback.py # Keyword review utilities
-│   │   ├── data_story_exhibit.py # Data visualization dashboard
-│   │   └── design/             # Figma prototypes and assets
-│   └── analysis/               # Data analysis scripts and dashboard
-├── scripts/
-│   ├── hf_upload_scripts/      # Hugging Face dataset upload utilities
-│   └── pipeline/               # Data filtration pipeline
-├── requirements.txt
-├── pyproject.toml
-└── README.md
+│   ├── analysis/          # Dashboards, parquet, figures
+│   └── frontend/
+│       ├── web/           # ★ Main React + Vite app
+│       └── …              # Gradio, Python helpers, design assets
+├── README.md
+└── LICENSE
 ```
 
+---
 
-## Pipeline
-The pipeline is the core of the project; it encompasses the entire process of filtering, cleaning, and matching 
-AAT keywords to art pieces. This allows user the staff to have a streamlined process, from separate museum collections and
-ATT keyword dataset.
+## Documentation
 
-### Specs
+- **[`docs/technical-handover.md`](docs/technical-handover.md)** — Onboarding: repo layout, local vs Colab, `dist/` policy, file-by-file frontend guide.
+- **[`docs/mcam-keyword-generator-user-guide.md`](docs/mcam-keyword-generator-user-guide.md)** — End-user steps (non-technical).
 
-Our pipeline is implemented in the Python programming language, due to the familiarity of the team with the language as well as the prominence of machine learning libraries and wrappers for the language. Powerful libraries such as pytorch make Python a premiere choice for machine learning work across the industry.
+---
 
-For our machine learning models, we chose Qwen3VL Embedder and Reranker models. These models have the benefit of being open-weight, which allows us to easily make any necessary adjustments easily, as well as being (close to) State of The Art in this space. Qwen as a whole is a rising force in the AI model space, with their propensity to release a wide range of variants and sizes for their models (as well as the previously mentioned open weights) making them particularly popular among local hosting and finetuning circles. The Embedder model generates embeddings based on the image, associating them with specific concepts; in our case, we fit the embedding model onto a filtered version of the AAT terms so that the embeddings it would generate are AAT terms. The Reranker model takes the embeddings generated and re-ranks them, which allows us to further refine the output and increase the quality of results.
+## Credits
 
-The pipeline is primarily designed around using Google Colab, as their rather generous educational benefits package has given us access to far more powerful hardware than we would otherwise have access too, and in general the platform allows for workflows to be very easily shared and used. We also believe that Colab's pay-as-you-go style of pricing will be very attractive to small museums, as it means that they only pay for what they use and they don't need to worry about the various costs of maintaining infrastructure or hardware themselves.
+Course project repository **cs2535-oakhoury-2026spring** — Mills College Art Museum keyword pipeline. See [`LICENSE`](LICENSE) (MIT, © 2026 cs2535-oakhoury-2026spring).
 
+---
 
-```mermaid
-flowchart TD
-    subgraph Setup["One-time Setup (on server start)"]
-        A["AAT Thesaurus\n44k art terms"] -->|"Qwen3-VL-Embedding-2B"| B[("ChromaDB\n44k pre-computed embeddings")]
-    end
+## License
 
-    subgraph Request["Per Request (via ngrok → Google Colab)"]
-        C["User uploads image\n+ keyword count"] -->|"LLaVA v1.6 7B\nvia llama.cpp"| H["Artwork description\n(streamed to UI)"]
-        C -->|"Qwen3-VL-Embedding-2B\n(image encoder)"| D["Image vector embedding"]
-        H -->|"Qwen3-VL-Embedding-2B\n(text encoder)"| I["Text vector embedding"]
-        D -->|"MMR search\n4× candidates for diversity"| B
-        I -->|"MMR search\nquery expansion"| B
-        B --> E["Candidate AAT terms\n(image + text combined)"]
-        E -->|"Qwen3-VL-Reranker-2B\nscores image + term pairs"| F["Ranked keywords\nwith confidence %"]
-        F --> G["React frontend\nuser reviews & exports"]
-    end
-```
-```mermaid
-flowchart TD
-    A[Artwork] -->|image| B[Embedder]
-    A -->|image| H[Description]
-    H -->| text | B
-    B -->| embeddings | C[(Vector DB 44k AAT Terms)]
-    C -->|top candidates| D[Reranker]
-    A -->|image| D
-    D -->|ranked keywords with confidence %| E[Review]
-```
+[MIT](LICENSE)
