@@ -124,7 +124,7 @@ sequenceDiagram
     browser->>fastApi: GET /predict-status/{job_id}
     fastApi-->>browser: JSON: status + updated scores
   end
-  Note over browser,fastApi: Keywords appear immediately; confidence percentages fill in progressively as polling completes.
+  Note over browser,fastApi: Keywords appear immediately, confidence percentages fill in progressively as polling completes.
 ```
 
 ## Static Serving Architecture
