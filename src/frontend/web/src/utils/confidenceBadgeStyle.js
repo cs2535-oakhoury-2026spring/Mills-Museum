@@ -31,8 +31,10 @@ function mixRgb(a, b, t) {
   }
 }
 
-//Estimates how bright a color appears to the human eye as a value between 0 (black) and 1 (white).
-//weights 0.2126, 0.7152, 0.0722 reflect how sensitive human vision is to each channel
+/**
+ * Perceived brightness (relative luminance) for sRGB, 0 = black, 1 = white.
+ * Coefficients follow WCAG 2.1 so badge text contrast stays predictable.
+ */
 function luminance(rgb) {
   return (0.2126 * rgb.r + 0.7152 * rgb.g + 0.0722 * rgb.b) / 255
 }

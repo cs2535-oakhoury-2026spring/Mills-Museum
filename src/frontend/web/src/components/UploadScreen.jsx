@@ -8,6 +8,7 @@
  */
 import { useState, useRef, useEffect } from 'react'
 
+/** Shown in help text and used only for `/facets`; prediction URLs come from `App` via the same env default. */
 const API_HINT =
   import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
@@ -46,6 +47,7 @@ export default function UploadScreen({
   const [busy, setBusy] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [keywordCount, setKeywordCount] = useState(DEFAULT_KEYWORD_COUNT)
+  /** Mirrors `keywordCount` as a string so the number input can be empty while typing mid-edit. */
   const [keywordCountText, setKeywordCountText] = useState(
     String(DEFAULT_KEYWORD_COUNT),
   )

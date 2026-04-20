@@ -152,7 +152,13 @@ export default function App() {
     let descriptionChunks = ''
     let fullDescription = null
     let buffer = ''
+    /** Monotonic 0–1 progress for this file; `bumpSlice` only moves forward so the bar never jitters backward. */
     let sliceT = 0
+    /**
+     * Maps coarse stream events to a smooth-ish progress curve for the UI.
+     * Description length drives the mid-ramp (cheap heuristic: ~3500 chars ≈ “almost done”);
+     * final jumps align with `description_done`, `result`, and status ticks.
+     */
     const bumpSlice = (t) => {
       const next = Math.max(sliceT, Math.min(1, t))
       if (next <= sliceT) return
@@ -195,7 +201,7 @@ export default function App() {
             throw new Error(msg.message)
           }
         } catch (parseErr) {
-          // Skip malformed SSE lines
+          // Partial chunks or keep-alive noise can produce invalid JSON; ignore those only.
           if (parseErr.message && !parseErr.message.includes('JSON')) throw parseErr
         }
       }
@@ -249,7 +255,7 @@ export default function App() {
           return Math.max(1, Math.min(50, Math.round(n)))
         })()
 
-    // Track whether streaming is available (discovered on first file)
+    // If the first file gets 503, the captioner is unavailable — skip SSE for the rest of the batch.
     let streamAvailable = true
 
     const fileWeight = files.length > 0 ? 100 / files.length : 100

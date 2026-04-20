@@ -1,3 +1,14 @@
+/**
+ * Per-image review panel: filtering, hierarchy grouping, confidence heatmap,
+ * per-image export, and rerank progress.
+ *
+ * Keeps canonical keyword data (`keywords` + `onKeywordsChange`) in the parent
+ * so `App` can merge poll updates without clobbering edits. Local state covers
+ * presentation only: copy feedback, modal, search, scope-note expansion, layout toggles.
+ *
+ * The `nav` prop batches prev/next, combined export, and “upload new” under
+ * the preview so actions stay next to the asset being reviewed.
+ */
 import { motion, AnimatePresence } from 'motion/react'
 import { useState, useEffect, useRef } from 'react'
 import { ZoomIn, Copy, Check, FileText, Search, ChevronDown, ChevronLeft, ChevronRight, Layers, Thermometer } from 'lucide-react'
@@ -10,20 +21,6 @@ import {
 import { getConfidenceBadgeStyle, getHeatmapTileStyle } from '../utils/confidenceBadgeStyle'
 import { reviewActionButtonSm, reviewActionButtonLg } from '../utils/reviewActionStyles'
 
-/**
- * Per-image review panel.
- *
- * Keeps "real" review data (keywords + selection) controlled by the parent via
- * `keywords` + `onKeywordsChange`, while owning only transient UI state:
- * - copy feedback
- * - modal open/close
- * - search query
- * - scope note expansion
- * - hierarchy grouping toggle
- *
- * The `nav` prop provides batch-level navigation and export controls,
- * rendered underneath the image preview.
- */
 export function ResultDisplay({
   imageSrc,
   keywords, // {text, confidence, selected, scopeNote, hierarchy}
@@ -74,6 +71,10 @@ export function ResultDisplay({
     setTimeout(() => setCopied(false), 2000)
   }
 
+  /**
+   * Checkbox is binary, but we treat “missing selected” as included (`isKeywordIncluded`).
+   * Toggling always writes an explicit boolean so export + UI stay consistent.
+   */
   const toggleKeyword = (index) => {
     onKeywordsChange(
       keywords.map((k, i) =>

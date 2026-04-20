@@ -8,8 +8,16 @@ import {
 /**
  * Batch review "shell" for results.
  *
- * Navigation, batch export, and "upload new" controls are passed down to
- * ResultDisplay so they render underneath the image preview (left column).
+ * `results` may interleave `success` and `error` rows; this view shows one row
+ * at `resultIndex`. Errors render inline (filename + message + thumbnail) so
+ * curators still see which file failed without losing the batch context.
+ *
+ * Navigation, batch export, and "upload new" live in `nav` on `ResultDisplay`
+ * (under the image) to keep review actions near the asset being judged.
+ *
+ * Export formats:
+ * - Combined TXT: one block per file, accession-derived label, human-readable.
+ * - Combined CSV: long shape (accession, keyword) for spreadsheets / merges.
  */
 export default function ReviewView({
   results,

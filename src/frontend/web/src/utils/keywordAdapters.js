@@ -5,6 +5,13 @@
  * backend-ish shapes into small, UI-friendly primitives so components can stay
  * focused on rendering and interaction.
  */
+/**
+ * Some API responses include human-readable definitions after the term.
+ * The UI and exports only need the canonical term string.
+ *
+ * @param {unknown} rawText
+ * @returns {string}
+ */
 function stripKeywordDefinition(rawText) {
   if (rawText == null) return ''
   const text = String(rawText).trim()

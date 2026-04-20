@@ -1,10 +1,25 @@
 import { useRef, useCallback } from 'react'
 
+/**
+ * Poll cadence: fast enough that the progress bar feels responsive, slow enough
+ * to avoid hammering Colab / a single-worker API. Adjust here if the backend
+ * rate-limits or if jobs are very long.
+ */
 const POLL_INTERVAL_MS = 1500
+
+/**
+ * Network blips (sleeping laptop, ngrok hiccup) should not tear down polling
+ * immediately. After this many consecutive failed fetches we assume the job
+ * channel is gone and surface a user-visible error via `onError`.
+ */
 const MAX_CONSECUTIVE_FAILURES = 10
 
 /**
  * Manages polling intervals for background reranking jobs.
+ *
+ * One interval per `jobId` so multiple images in a batch can rerank in parallel.
+ * Refs store timer ids and per-job failure counts so callbacks stay stable and
+ * we do not recreate intervals on unrelated parent re-renders.
  *
  * @param {string} apiUrl        Backend base URL
  * @param {Function} onUpdate    Called on each successful poll: (resultIndex, data)

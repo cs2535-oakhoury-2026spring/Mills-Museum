@@ -27,7 +27,12 @@ export function ProcessingDisplay({
 }) {
   const [visibleKeywords, setVisibleKeywords] = useState([])
 
-  // While work is in flight, hide chips. At 100%, append keywords one-by-one for a short staggered entrance.
+  /**
+   * Cosmetic stagger: when `progress` hits 100 the parent may still be on the
+   * same view briefly; reveal chips 200ms apart for a light “reveal” motion.
+   * Timers are short; we skip cleanup to keep the effect trivial (keywords at
+   * 100% are typically the final list for that file).
+   */
   useEffect(() => {
     if (progress < 100) {
       setVisibleKeywords([])
