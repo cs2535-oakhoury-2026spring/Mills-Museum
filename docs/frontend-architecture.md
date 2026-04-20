@@ -109,6 +109,7 @@ For each file in the batch, `App.jsx` executes a stream-first strategy:
 This polling exists because prediction returns keyword candidates quickly, while rerank score computation completes asynchronously afterward.
 
 ```mermaid
+%% Diagram: Prediction request
 sequenceDiagram
   participant browser as Browser
   participant fastApi as FastAPI
@@ -120,6 +121,14 @@ sequenceDiagram
     browser->>fastApi: POST /predict (FormData)
     fastApi-->>browser: JSON: job_id + initial keywords
   end
+```
+
+```mermaid
+%% Diagram: Async score polling
+sequenceDiagram
+  participant browser as Browser
+  participant fastApi as FastAPI
+
   loop until rerank complete
     browser->>fastApi: GET /predict-status/{job_id}
     fastApi-->>browser: JSON: status + updated scores
