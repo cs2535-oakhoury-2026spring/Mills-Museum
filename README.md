@@ -84,8 +84,6 @@ Mills-Museum/
   
   ```mermaid
   ---
-
-
 config:
   theme: base
   themeVariables:
@@ -110,32 +108,32 @@ title: MCAM Keyword Pipeline — AI Architecture
 ---
 flowchart TB
  subgraph PERCEPTION["fa:fa-eye Perception"]
-        CAPTIONER["fa:fa-comment-dots <b>Artwork captioner</b><br>Generates natural-language description<br>subject, medium, colors, technique, etc<br><br><i>LLaVA v1.6 Mistral 7B · Q4_K_M</i>"]
+        CAPTIONER["fa:fa-comment-dots <b>Artwork captioner</b><br>Generates natural-language description<br>subject, medium, colors,<br>technique, etc<br><br><i>LLaVA v1.6 Mistral 7B ·<br>Q4_K_M</i>"]
         IMG_EMBED["fa:fa-cube <b>Image embedder</b><br>Encodes image into same<br>vector space as AAT terms<br><br><i>ViT-SO400M-14-SigLIP-384</i>"]
         TXT_EMBED["fa:fa-cube <b>Text embedder</b><br>Encodes caption into same<br>vector space as AAT terms<br><br><i>ViT-SO400M-14-SigLIP-384</i>"]
         TXT_VEC[/"fa:fa-braille <b>Text vector</b><br><code>[0.67, 0.03, −0.55, …]</code>"/]
         IMG_VEC[/"fa:fa-braille <b>Image vector</b><br><code>[0.42, −0.18, 0.91, …]</code>"/]
   end
  subgraph RETRIEVAL["fa:fa-search Retrieval"]
-        FUSION{{"fa:fa-code-branch <b>Dual-query fusion</b><br>query_bias splits retrieval out of total keywords<br><br>pure image vs pure text <br>0.0 - 1.0<br><br><i>defaults to 0.5<br>(half from each embedding)</i>"}}
-        MMR["fa:fa-random <b>MMR search</b><br>Maximal Marginal Relevance<br>k × 4 candidates for diversity<br><br><i>λ controls relevance vs. diversity</i>"]
-        CHROMADB[("fa:fa-database <b>ChromaDB</b><br>19.9k pre-computed AAT embeddings<br>Cosine · HNSW index")]
-        DEDUP["fa:fa-filter <b>Deduplicate + merge</b><br>Combine image &amp; text results<br>Remove duplicate terms"]
+        FUSION{{"fa:fa-code-branch <b>Dual-query fusion</b><br>query_bias splits retrieval<br>out of total keywords<br><br>pure image vs pure text <br>0.0 - 1.0<br><br><i>defaults to 0.5<br>(half from each embedding)</i>"}}
+        MMR["fa:fa-random <b>MMR search</b><br>Maximal Marginal Relevance<br>k × 4 candidates for diversity<br><br><i>λ controls relevance vs.<br>diversity</i>"]
+        CHROMADB[("fa:fa-database <b>ChromaDB</b><br>19.9k pre-computed <br>AAT embeddings<br>Cosine · HNSW index")]
+        DEDUP["fa:fa-filter <b>Deduplicate + merge</b><br>Combine image &amp; text <br>keyword results<br>Remove duplicate terms"]
   end
  subgraph OFFLINE["fa:fa-cogs Offline — AAT Embedding Pipeline (setup once)"]
-        AAT_RAW["fa:fa-globe <b>Getty AAT</b><br>Art &amp; Architecture Thesaurus<br>relational database<br><br><i>482k terms from vocab.getty.edu</i>"]
+        AAT_RAW["fa:fa-globe <b>Getty AAT</b><br>Art &amp; Architecture <br>Thesaurus<br>relational database<br><br><i>482k terms from <br>vocab.getty.edu</i>"]
         AAT_FILTER["fa:fa-cut <b>Selective filtering</b><br>Remove:<br>Irrelevant facets<br>Deeply nested terms<br>Non-english terms<br>Terms without scope note<br>etc<br><br><i>482k → 19.9k terms</i>"]
-        AAT_SRC["fa:fa-book <b>Filtered AAT dataset</b><br>19.9k curated art terms<br>with scope notes + hierarchies + facets<br><br><i>KeeganCarey/aat-selectively-filtered</i>"]
-        EMBED_NB@{ label: "fa:fa-flask <b style=\"color:\">Embedding notebook</b><br>Batch-embeds all terms<br>with scope notes + hierarchy context<br>into vector database<br><br><i>embed_aat_keywords.ipynb<br>ViT-SO400M-14-SigLIP-384</i>" }
-        HF_UPLOAD[("fa:fa-cloud-upload <b>Upload to HuggingFace</b><br>Persistent ChromaDB pushed via<br>hf_api.upload_folder<br><br><i>KeeganCarey/mcam-vdb</i>")]
+        AAT_SRC["fa:fa-book <b>Filtered AAT dataset</b><br>19.9k curated art terms<br>with scope notes + <br>hierarchies + facets<br><br><i>KeeganCarey/aat-<br>selectively-filtered</i>"]
+        EMBED_NB@{ label: "fa:fa-flask <b style=\"color:\">Embedding notebook</b><br>Batch-embeds all terms<br>with scope notes + <br>hierarchy context<br>into vector database<br><br><i>embed_aat_keywords.ipynb<br>ViT-SO400M-14-SigLIP-384</i>" }
+        HF_UPLOAD[("fa:fa-cloud-upload <b>Upload to HuggingFace</b><br>Persistent ChromaDB pushed<br>via hf_api.upload_folder<br><br><i>KeeganCarey/mcam-vdb</i>")]
   end
  subgraph SCORING["fa:fa-sort-amount-down Scoring"]
-        CANDIDATES(["fa:fa-tags <b>Candidate AAT terms</b><br>Oversampled diverse matches from<br>vector similarity"])
-        RERANKER["fa:fa-balance-scale <b>Vision reranker</b><br>Each candidate is scored against original artwork via vision-language classifier head → 0–100% confidence<br><br><i>Qwen3-VL-Reranker-2B</i><br>"]
-        RANKED(["fa:fa-list-ol <b>Ranked keywords</b><br>Sorted by confidence %<br>Progressively updated in real time"])
+        CANDIDATES(["fa:fa-tags <b>Candidate AAT terms</b><br>Oversampled diverse<br>matches from<br>vector similarity"])
+        RERANKER["fa:fa-balance-scale <b>Vision reranker</b><br>Each candidate is scored <br>against original artwork via<br>vision-language classifier <br>head → 0–100% confidence<br><br><i>Qwen3-VL-Reranker-2B</i><br>"]
+        RANKED(["fa:fa-list-ol <b>Ranked keywords</b><br>Sorted by confidence %<br>Progressively updated <br>in real time"])
   end
  subgraph OUTPUT_SEC["fa:fa-check-circle Output"]
-        REVIEW["fa:fa-user-check <b>Human review</b><br>Museum staff accept or reject AI-suggested keywords<br><br>Final Keyword selection is exported as a csv<br><br><i>React frontend · SSE streaming</i>"]
+        REVIEW["fa:fa-user-check <b>Human review</b><br>Museum staff accept or<br>reject AI-suggested<br>keywords<br><br>Final Keyword selection is <br>exported as a csv<br><br><i>React frontend · <br>SSE streaming</i>"]
   end
     CAPTIONER -- description text --> TXT_EMBED
     TXT_EMBED --> TXT_VEC
@@ -145,13 +143,13 @@ flowchart TB
     CHROMADB --> DEDUP
     CANDIDATES --> RERANKER
     RERANKER --> RANKED
-    ARTWORK(["fa:fa-image <b>Artwork image</b><br>Museum artwork + Generation Settings"]) -- image --> CAPTIONER & IMG_EMBED
+    ARTWORK(["fa:fa-image <b>Artwork image</b><br>Museum artwork + <br>Generation Settings"]) -- image --> CAPTIONER & IMG_EMBED
     TXT_VEC --> FUSION
     IMG_VEC --> FUSION
-    DEDUP -- "oil painting · portrait · vase" --> CANDIDATES
+    DEDUP -- oil painting · portrait · vase --> CANDIDATES
     ARTWORK -. image .-> RERANKER
     CANDIDATES -. initial keywords (unscored)<br>displayed immediately .-> REVIEW
-    RANKED -- "scores backfilled progressively<br>94.2% · 87.1% · 72.8% …" --> REVIEW
+    RANKED -- "scores backfilled</br>progressively</br>94.2% · 87.1% · 72.8% …" --> REVIEW
     AAT_SRC -- "19.9k terms + scope notes" --> EMBED_NB
     EMBED_NB -- populated vector database --> HF_UPLOAD
     HF_UPLOAD -. "download pre-embedded<br>vector database on startup" .-> CHROMADB
