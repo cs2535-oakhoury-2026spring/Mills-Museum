@@ -129,7 +129,7 @@ sequenceDiagram
   participant browser as Browser
   participant fastApi as FastAPI
 
-  loop until_rerank_complete
+  loop until rerank complete
     browser->>fastApi: GET /predict-status/{job_id}
     fastApi-->>browser: JSON (status + updated scores)
   end
