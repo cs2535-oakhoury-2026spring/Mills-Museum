@@ -5,6 +5,13 @@
  * backend-ish shapes into small, UI-friendly primitives so components can stay
  * focused on rendering and interaction.
  */
+/**
+ * Some API responses include human-readable definitions after the term.
+ * The UI and exports only need the canonical term string.
+ *
+ * @param {unknown} rawText
+ * @returns {string}
+ */
 function stripKeywordDefinition(rawText) {
   if (rawText == null) return ''
   const text = String(rawText).trim()
@@ -68,6 +75,34 @@ export function mapApiKeyword(kw) {
 }
 
 /**
+ * Progressive variant: returns `confidence: null` when the backend hasn't
+ * scored the keyword yet (score is null/undefined). This signals the UI
+ * to show a placeholder instead of "0%".
+ */
+export function mapApiKeywordProgressive(kw) {
+  const rawScore = kw.score
+  const hasScore = rawScore !== null && rawScore !== undefined
+  const score = hasScore
+    ? typeof rawScore === 'number'
+      ? rawScore
+      : parseFloat(rawScore)
+    : null
+
+  const rawText = kw.label ?? kw.text ?? ''
+
+  return {
+    text: stripKeywordDefinition(rawText),
+    confidence:
+      score !== null && Number.isFinite(score)
+        ? Math.round(score * 10) / 10
+        : null,
+    selected: true,
+    scopeNote: kw.scope_note ?? '',
+    hierarchy: kw.hierarchy ?? '',
+  }
+}
+
+/**
  * Keyword is included in exports when `selected` is not explicitly false.
  * This makes inclusion the default, even if older data lacks a `selected` field.
  */
@@ -98,9 +133,8 @@ function csvEscape(value) {
 export function buildCombinedExportText(results) {
   return results
     .map((r) => {
-      const raw = r.file?.name
-      const name =
-        raw != null && raw !== '' ? stripFileExtension(raw) : 'unknown'
+      const raw = r.file?.name ?? ''
+      const name = getAccessionNumberFromTitle(raw) || 'unknown'
       if (r.type === 'error') {
         // Preserve failures in the export summary so the batch record still
         // shows which images could not be processed.

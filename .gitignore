@@ -1,4 +1,6 @@
 .venv/
+.github/
+
 __pycache__/
 *.py[cod]
 .pytest_cache/
@@ -11,12 +13,28 @@ htmlcov/
 .idea/
 .git/
 
+.rightnow/
+.claude/
+
+.env
+
 build/
 *.egg-info/
 
+# Large database files
+AAT_terms/
+*.db
+*.db.bak
+src/data/VDB/
+
+# Data files
 *.csv
 *.tsv
 *.xlsx
+
+# Node.js
+node_modules/
+dist/
 
 src/analysis/*.png
 src/analysis/*.html
@@ -25,3 +43,6 @@ src/analysis/*.json
 src/analysis/figures/*.png
 src/analysis/figures/*.html
 !src/analysis/figures/dashboard.html
+
+test/
+tests/

@@ -5,13 +5,17 @@ Filter AAT SQLite database to museum-relevant hierarchies and push to HuggingFac
     huggingface-cli login
 """
 
+import os
 import sqlite3
 import pandas as pd
 from datasets import Dataset
+from dotenv import load_dotenv
+
+load_dotenv()
 
 DB_PATH = "AAT_terms/aat_database.db"
 HF_REPO = "KeeganC/aat-museum-subset"
-HF_TOKEN = "hey dont look at my token pls"
+HF_TOKEN = os.environ["HF_TOKEN"]
 
 # ── hierarchies to keep ──────────────────────────────────────────────
 TARGET_HIERARCHIES = [

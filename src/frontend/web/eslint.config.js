@@ -1,3 +1,7 @@
+/**
+ * ESLint flat config for the Vite React app (`src/frontend/web`).
+ * Recommended JS rules + React Hooks + Vite refresh plugin; `dist` is ignored.
+ */
 import js from '@eslint/js'
 import globals from 'globals'
 import reactHooks from 'eslint-plugin-react-hooks'
