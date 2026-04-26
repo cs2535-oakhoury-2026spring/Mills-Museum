@@ -15,8 +15,7 @@
 
 ---
 
-<!-- Replace with a real screenshot when available -->
-![MCAM Keyword Generator — screenshot placeholder](https://via.placeholder.com/960x540/1e2a44/d8e4f5?text=MCAM+Keyword+Generator+%28add+screenshot+to+docs%2F%29)
+![MCAM Keyword Generator upload page](media/MCAM%20upload%20page.png)
 
 ---
 
