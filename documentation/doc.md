@@ -21,7 +21,7 @@ There are two frontend styles in this repository:
 - A Python/Gradio workflow in `src/frontend/gradio.py` for uploading artwork images, generating keywords, reviewing them, and exporting the results.
 - A React/Vite browser app in `src/frontend/web/` that performs a similar keyword-review flow but talks to a backend API over HTTP.
 
-There is also a separate Gradio-based data exhibit in `src/frontend/data_viz/data_story_exhibit.py`. That app is not the keyword-review tool. It is an interactive presentation of the AAT dataset and project findings.
+There is also a separate Gradio-based data exhibit in `src/frontend/data_story_exhibit.py`. That app is not the keyword-review tool. It is an interactive presentation of the AAT dataset and project findings.
 
 ### Analysis work
 
@@ -43,11 +43,12 @@ That script embeds term labels, clusters similar labels within each language, ch
 ## Files worth reading first
 
 - `README.md`: project overview and overall goals.
+- `documentation/docs/technical-handover.md`: setup and developer handoff guide.
+- `documentation/docs/mcam-keyword-generator-user-guide.md`: non-technical user guide.
 - `src/frontend/doc.md`: detailed guide to the user-facing application code.
 - `src/analysis/doc.md`: detailed guide to the analysis and dashboard code.
 - `pyproject.toml`: Python package configuration.
 - `package.json`: root npm shortcuts for the React app.
-- `CHANGELOG.md`: project change log.
 
 ## Common commands
 
